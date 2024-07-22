@@ -3,9 +3,9 @@ package message
 import (
 	"strconv"
 
-	"github.com/https-whoyan/MafiaBot/core/fmt"
-	playerPack "github.com/https-whoyan/MafiaBot/core/player"
-	"github.com/https-whoyan/MafiaBot/core/roles"
+	"github.com/https-whoyan/MafiaCore/fmt"
+	playerPack "github.com/https-whoyan/MafiaCore/player"
+	"github.com/https-whoyan/MafiaCore/roles"
 )
 
 // GetStartPlayerDefinition is used to receive a private message at the beginning of the player.

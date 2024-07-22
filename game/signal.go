@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/https-whoyan/MafiaBot/core/roles"
+	"github.com/https-whoyan/MafiaCore/roles"
 )
 
 // Signal is the structure that is used as the send data, when the game starts.

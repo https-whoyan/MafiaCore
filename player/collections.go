@@ -1,8 +1,9 @@
 package player
 
 import (
-	"github.com/https-whoyan/MafiaBot/core/roles"
 	"strconv"
+
+	"github.com/https-whoyan/MafiaCore/roles"
 )
 
 // ________________________
@@ -124,11 +125,26 @@ func (s *Players) Len() int {
 	return len(*s)
 }
 
+func (s *Players) GetByID(ID int) *Player {
+	return (*s)[IDType(ID)]
+}
+
+func (s *Players) GetByIDType(ID IDType) *Player {
+	return (*s)[ID]
+}
+
+func (s *Players) Remove(player *Player) {
+	if player == nil {
+		return
+	}
+	delete(*s, player.ID)
+}
+
 func (s *Players) ToDead(playerID IDType, reason DeadReason, dayLived int, deadPlayers *DeadPlayers) {
-	p := (*s)[playerID]
+	p := s.GetByIDType(playerID)
 	newDeadPlayer := NewDeadPlayer(p, reason, dayLived)
 	(*deadPlayers)[p.Role] = append((*deadPlayers)[p.Role], newDeadPlayer)
-	delete(*s, p.ID)
+	s.Remove(p)
 }
 
 // ______________________

@@ -1,8 +1,8 @@
 package game
 
 import (
-	"github.com/https-whoyan/MafiaBot/core/player"
-	"github.com/https-whoyan/MafiaBot/core/roles"
+	"github.com/https-whoyan/MafiaCore/player"
+	"github.com/https-whoyan/MafiaCore/roles"
 )
 
 // This is where all the code regarding reincarnation and role reversal is contained.

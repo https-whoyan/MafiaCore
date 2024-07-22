@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	cnvPack "github.com/https-whoyan/MafiaBot/core/converter"
-	myFMT "github.com/https-whoyan/MafiaBot/core/fmt"
-	playerPack "github.com/https-whoyan/MafiaBot/core/player"
-	rolesPack "github.com/https-whoyan/MafiaBot/core/roles"
-	myTime "github.com/https-whoyan/MafiaBot/core/time"
+	cnvPack "github.com/https-whoyan/MafiaCore/converter"
+	myFMT "github.com/https-whoyan/MafiaCore/fmt"
+	playerPack "github.com/https-whoyan/MafiaCore/player"
+	rolesPack "github.com/https-whoyan/MafiaCore/roles"
+	myTime "github.com/https-whoyan/MafiaCore/time"
 )
 
 // !!!!!!!!!!!!!!!!!!

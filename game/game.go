@@ -6,12 +6,12 @@ import (
 	"sync"
 	"time"
 
-	channelPack "github.com/https-whoyan/MafiaBot/core/channel"
-	configPack "github.com/https-whoyan/MafiaBot/core/config"
-	fmtPack "github.com/https-whoyan/MafiaBot/core/fmt"
-	playerPack "github.com/https-whoyan/MafiaBot/core/player"
-	rolesPack "github.com/https-whoyan/MafiaBot/core/roles"
-	timePack "github.com/https-whoyan/MafiaBot/core/time"
+	channelPack "github.com/https-whoyan/MafiaCore/channel"
+	configPack "github.com/https-whoyan/MafiaCore/config"
+	fmtPack "github.com/https-whoyan/MafiaCore/fmt"
+	playerPack "github.com/https-whoyan/MafiaCore/player"
+	rolesPack "github.com/https-whoyan/MafiaCore/roles"
+	timePack "github.com/https-whoyan/MafiaCore/time"
 )
 
 // This file describes the structure of the game, as well as the start and end functions of the game.

@@ -2,11 +2,11 @@ package game
 
 import (
 	"errors"
-	"github.com/https-whoyan/MafiaBot/core/converter"
 	"strconv"
 
-	"github.com/https-whoyan/MafiaBot/core/channel"
-	"github.com/https-whoyan/MafiaBot/core/player"
+	"github.com/https-whoyan/MafiaCore/channel"
+	"github.com/https-whoyan/MafiaCore/converter"
+	"github.com/https-whoyan/MafiaCore/player"
 )
 
 // This file contains everything about the voting mechanics.

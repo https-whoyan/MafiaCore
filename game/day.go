@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/https-whoyan/MafiaBot/core/player"
+	"github.com/https-whoyan/MafiaCore/player"
 )
 
 const (

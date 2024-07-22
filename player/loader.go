@@ -2,8 +2,9 @@ package player
 
 import (
 	"errors"
-	"github.com/https-whoyan/MafiaBot/core/config"
 	"log"
+
+	"github.com/https-whoyan/MafiaCore/config"
 )
 
 // ___________________________________

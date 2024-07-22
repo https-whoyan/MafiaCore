@@ -3,8 +3,8 @@ package game
 import (
 	"strconv"
 
-	"github.com/https-whoyan/MafiaBot/core/player"
-	"github.com/https-whoyan/MafiaBot/core/roles"
+	"github.com/https-whoyan/MafiaCore/player"
+	"github.com/https-whoyan/MafiaCore/roles"
 )
 
 // All interactions for roles are declared here to avoid cyclic import.

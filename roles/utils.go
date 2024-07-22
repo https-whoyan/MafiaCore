@@ -1,9 +1,10 @@
 package roles
 
 import (
-	"github.com/https-whoyan/MafiaBot/core/converter"
 	"slices"
 	"sort"
+
+	"github.com/https-whoyan/MafiaCore/converter"
 )
 
 // Utils.

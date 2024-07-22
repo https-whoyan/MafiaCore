@@ -4,10 +4,10 @@ import (
 	"sort"
 	"time"
 
-	channelPack "github.com/https-whoyan/MafiaBot/core/channel"
-	playerPack "github.com/https-whoyan/MafiaBot/core/player"
-	rolesPack "github.com/https-whoyan/MafiaBot/core/roles"
-	myTime "github.com/https-whoyan/MafiaBot/core/time"
+	channelPack "github.com/https-whoyan/MafiaCore/channel"
+	playerPack "github.com/https-whoyan/MafiaCore/player"
+	rolesPack "github.com/https-whoyan/MafiaCore/roles"
+	myTime "github.com/https-whoyan/MafiaCore/time"
 )
 
 // Night
@@ -342,49 +342,16 @@ func (g *Game) AffectNight(l NightLog) {
 		g.Lock()
 
 		// Splitting arrays.
-		var newDeadPersons []*playerPack.DeadPlayer
+		var newDeadPersons = &playerPack.Players{}
 
 		for _, deadID := range l.Dead {
 			g.Active.ToDead(playerPack.IDType(deadID), playerPack.KilledAtNight, g.NightCounter, g.Dead)
+			newDeadPersons.Append(g.Active)
 		}
 
-		// I will add add add all killed players after a minute of players after a minute of
+		// I will add add add all killed players after a minute of players a fter a minute of
 		// players after a minute, so, using goroutine.
-		go func(newDeadPersons []*playerPack.DeadPlayer) {
-			duration := myTime.LastWordDeadline * time.Second
-			ticker := time.NewTicker(duration)
-
-			g.RLock()
-			mainChannel := g.MainChannel
-			roleChannels := g.RoleChannels
-			g.RUnlock()
-
-			defer ticker.Stop()
-			select {
-			case <-g.ctx.Done():
-				return
-			case <-ticker.C:
-				// I'm adding new dead players to the spectators in the channels (so they won't be so bored)
-				for _, p := range newDeadPersons {
-					for _, interactionChannel := range roleChannels {
-						select {
-						case <-g.ctx.Done():
-							return
-						default:
-							safeSendErrSignal(g.infoSender, channelPack.FromUserToSpectator(interactionChannel, p.Tag))
-							break
-						}
-					}
-					select {
-					case <-g.ctx.Done():
-						return
-					default:
-						safeSendErrSignal(g.infoSender, channelPack.FromUserToSpectator(mainChannel, p.Tag))
-						break
-					}
-				}
-			}
-		}(newDeadPersons)
+		go g.AppendToSpectators(newDeadPersons, myTime.LastWordDeadline*time.Second)
 
 		// Sending a message about who died today.
 		err := g.Messenger.AfterNight.SendAfterNightMessage(l, g.MainChannel)
@@ -395,5 +362,42 @@ func (g *Game) AffectNight(l NightLog) {
 			g.reincarnation(p)
 		}
 		return
+	}
+}
+
+func (g *Game) AppendToSpectators(newSpectators interface{ GetTags() []string }, after time.Duration) {
+	ticker := time.NewTicker(after)
+
+	g.RLock()
+	mainChannel := g.MainChannel
+	roleChannels := g.RoleChannels
+	g.RUnlock()
+
+	defer ticker.Stop()
+	select {
+	case <-g.ctx.Done():
+		return
+	case <-ticker.C:
+		// I'm adding new dead players to the spectators in the channels (so they won't be so bored)
+		for _, tag := range newSpectators.GetTags() {
+			for _, interactionChannel := range roleChannels {
+				select {
+				case <-g.ctx.Done():
+					return
+				default:
+					err := channelPack.FromUserToSpectator(interactionChannel, tag)
+					safeSendErrSignal(g.infoSender, err)
+					break
+				}
+			}
+			select {
+			case <-g.ctx.Done():
+				return
+			default:
+				err := channelPack.FromUserToSpectator(mainChannel, tag)
+				safeSendErrSignal(g.infoSender, err)
+				break
+			}
+		}
 	}
 }

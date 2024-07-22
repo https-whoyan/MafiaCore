@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/https-whoyan/MafiaBot/core/fmt"
-	"github.com/https-whoyan/MafiaBot/core/roles"
+	"github.com/https-whoyan/MafiaCore/fmt"
+	"github.com/https-whoyan/MafiaCore/roles"
 )
 
 func (cfg *RolesConfig) GetMessageAboutConfig(f fmt.FmtInterface) string {

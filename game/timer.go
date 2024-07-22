@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"time"
 
-	myTime "github.com/https-whoyan/MafiaBot/core/time"
+	myTime "github.com/https-whoyan/MafiaCore/time"
 )
 
 // Used to simulate.

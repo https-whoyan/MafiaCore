@@ -4,8 +4,8 @@ import (
 	"math/rand"
 	"sort"
 
-	"github.com/https-whoyan/MafiaBot/core/converter"
-	"github.com/https-whoyan/MafiaBot/core/roles"
+	"github.com/https-whoyan/MafiaCore/converter"
+	"github.com/https-whoyan/MafiaCore/roles"
 )
 
 func (cfg *RolesConfig) GetShuffledRolesConfig() []*roles.Role {
