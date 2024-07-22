@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="ALL" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="d90fbe38-9bcc-4d4c-89b0-f11f04c5b6a4" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.env.example" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/config.go" beforeDir="false" afterPath="$PROJECT_DIR$/config/config.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/core/readme.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/static/game_cycle.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/bot.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/channel/channel.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/converter/channel.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/converter/maps.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/converter/sets.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/converter/user.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/fmt/fmt.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/game/config.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/handlers/commands.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/handlers/game.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/handlers/handlers.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/handlers/interface.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/handlers/util.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/handlers/validator.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/message/util.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/time/consts.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/user/provider.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/wrap/unwrapper.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/channel/interface.go" beforeDir="false" afterPath="$PROJECT_DIR$/channel/interface.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/channel/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/channel/utils.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/config/config.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/config/fmt.go" beforeDir="false" afterPath="$PROJECT_DIR$/config/fmt.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/config/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/config/utils.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/converter/maps.go" beforeDir="false" afterPath="$PROJECT_DIR$/converter/maps.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/converter/sets.go" beforeDir="false" afterPath="$PROJECT_DIR$/converter/sets.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/fmt/fmt.go" beforeDir="false" afterPath="$PROJECT_DIR$/fmt/fmt.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/game/day.go" beforeDir="false" afterPath="$PROJECT_DIR$/game/day.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/game/game.go" beforeDir="false" afterPath="$PROJECT_DIR$/game/game.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/game/interaction.go" beforeDir="false" afterPath="$PROJECT_DIR$/game/interaction.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/game/loaders.go" beforeDir="false" afterPath="$PROJECT_DIR$/game/loaders.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/game/logger.go" beforeDir="false" afterPath="$PROJECT_DIR$/game/logger.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/game/message.go" beforeDir="false" afterPath="$PROJECT_DIR$/game/message.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/game/night.go" beforeDir="false" afterPath="$PROJECT_DIR$/game/night.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/game/reincarnation.go" beforeDir="false" afterPath="$PROJECT_DIR$/game/reincarnation.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/game/signal.go" beforeDir="false" afterPath="$PROJECT_DIR$/game/signal.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/game/state.go" beforeDir="false" afterPath="$PROJECT_DIR$/game/state.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/game/timer.go" beforeDir="false" afterPath="$PROJECT_DIR$/game/timer.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/game/timer_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/game/timer_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/game/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/game/utils.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/game/vote.go" beforeDir="false" afterPath="$PROJECT_DIR$/game/vote.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/go.mod" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/message/player.go" beforeDir="false" afterPath="$PROJECT_DIR$/message/player.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/message/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/message/readme.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/player/collections.go" beforeDir="false" afterPath="$PROJECT_DIR$/player/collections.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/player/loader.go" beforeDir="false" afterPath="$PROJECT_DIR$/player/loader.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/player/player.go" beforeDir="false" afterPath="$PROJECT_DIR$/player/player.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/player/provider.go" beforeDir="false" afterPath="$PROJECT_DIR$/player/provider.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/player/util.go" beforeDir="false" afterPath="$PROJECT_DIR$/player/util.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/roles/citizen.go" beforeDir="false" afterPath="$PROJECT_DIR$/roles/citizen.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/roles/detective.go" beforeDir="false" afterPath="$PROJECT_DIR$/roles/detective.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/roles/doctor.go" beforeDir="false" afterPath="$PROJECT_DIR$/roles/doctor.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/roles/don.go" beforeDir="false" afterPath="$PROJECT_DIR$/roles/don.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/roles/fmt.go" beforeDir="false" afterPath="$PROJECT_DIR$/roles/fmt.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/roles/fool.go" beforeDir="false" afterPath="$PROJECT_DIR$/roles/fool.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/roles/mafia.go" beforeDir="false" afterPath="$PROJECT_DIR$/roles/mafia.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/roles/maniac.go" beforeDir="false" afterPath="$PROJECT_DIR$/roles/maniac.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/roles/peaceful.go" beforeDir="false" afterPath="$PROJECT_DIR$/roles/peaceful.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/roles/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/roles/readme.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/roles/role.go" beforeDir="false" afterPath="$PROJECT_DIR$/roles/role.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/roles/team.go" beforeDir="false" afterPath="$PROJECT_DIR$/roles/team.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/roles/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/roles/utils.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/roles/whore.go" beforeDir="false" afterPath="$PROJECT_DIR$/roles/whore.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/core/time/consts.go" beforeDir="false" afterPath="$PROJECT_DIR$/time/consts.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/repository/mongo/connector.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/repository/mongo/handler.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/repository/mongo/models.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/repository/redis/connector.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/repository/redis/handler.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/main.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/config/utils.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/game/config_correct_test.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/game/day_test.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/game/init_test.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/game/metrics.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/game/night_test.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/game/util.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/models/channel.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/models/fmter.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/models/game.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/models/test_player.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/models/user.go" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="GOROOT" url="file://$PROJECT_DIR$/../../../../../Program Files/Go" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 6
+}</component>
+  <component name="ProjectId" id="2jb5YyH5YXrrGYFURrsjzG5fDXc" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.go.formatter.settings.were.checked": "true",
+    "RunOnceActivity.go.migrated.go.modules.settings": "true",
+    "RunOnceActivity.go.modules.automatic.dependencies.download": "true",
+    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
+    "git-widget-placeholder": "main",
+    "go.import.settings.migrated": "true",
+    "go.sdk.automatically.set": "true",
+    "last_opened_file_path": "C:/Users/Yan/Documents/Code_GO/MafiaCore",
+    "nodejs_package_manager_path": "npm"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\Yan\Documents\Code_GO\MafiaCore" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-gosdk-33c477a475b1-e0158606a674-org.jetbrains.plugins.go.sharedIndexes.bundled-GO-241.17011.92" />
+        <option value="bundled-js-predefined-1d06a55b98c1-0b3e54e931b4-JavaScript-GO-241.17011.92" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VgoProject">
+    <settings-migrated>true</settings-migrated>
+  </component>
+</project>
