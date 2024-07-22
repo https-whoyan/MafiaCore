@@ -620,6 +620,7 @@ func (g *Game) finish() {
 			sendFatalSignal(g.infoSender, errors.New("invalid rename mode"))
 			return
 		}
+
 		sendCloseSignal(g.infoSender, "the game has been successfully completed.")
 	})
 }
