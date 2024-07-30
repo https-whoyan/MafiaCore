@@ -100,6 +100,7 @@ var (
 	VotePlayerIsNotAlive  = errors.New("Vote player is not alive")
 	VotePingError         = errors.New("player get same Vote before")
 	IncorrectVoteTime     = errors.New("incorrect Vote time")
+	CannotVoteToYourself  = errors.New("cannot vote to yourself")
 	OneVoteRequiredErr    = errors.New("one Vote required")
 	TwoVoteRequiredErr    = errors.New("two Vote required")
 	TwoVotesOneOfEmptyErr = errors.New("both votes must be either blank or not blank")
@@ -133,6 +134,9 @@ func (g *Game) voteProviderValidator(vP VoteProviderInterface) error {
 	toVotePlayer := g.Active.SearchPlayerByID(vote, false)
 	if toVotePlayer == nil {
 		return VotePlayerNotFound
+	}
+	if votedPlayer.ID == toVotePlayer.ID && !g.VoteForYourself {
+		return CannotVoteToYourself
 	}
 	return nil
 }
@@ -206,6 +210,9 @@ func (g *Game) DayVoteValidatorByChannelIID(vP VoteProviderInterface, channelIID
 }
 
 func (g *Game) DayVoteValidator(vP VoteProviderInterface) error {
+	if g.State != DayState {
+		return IncorrectVoteTime
+	}
 	return g.voteProviderValidator(vP)
 }
 

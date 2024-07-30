@@ -182,6 +182,14 @@ func (m *nightMessenger) SendThanksToMutedPlayerMessage(p *playerPack.Player, wr
 	return m.sendMessage(message, writer)
 }
 
+func (m *nightMessenger) InfoThatTimerIsDone(writer io.Writer) error {
+	m.g.RLock()
+	defer m.g.RUnlock()
+	message := myFMT.BoldUnderline(m.f, "The timer has run out!") + m.f.LineSplitter() + m.f.LineSplitter() +
+		m.f.Italic("next time, be quicker.....")
+	return m.sendMessage(message, writer)
+}
+
 // ____________
 // AfterNight
 // ____________

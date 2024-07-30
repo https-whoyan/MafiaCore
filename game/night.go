@@ -84,7 +84,7 @@ func (g *Game) RoleNightAction(votedRole *rolesPack.Role) {
 		// Finding all the players with that role.
 		// And finding nightInteraction channel
 		g.RLock()
-		interactionChannel := g.RoleChannels[votedRole.Name]
+		interactionChannel := g.RoleChannels[votedRole]
 		allPlayersWithRole := g.Active.SearchAllPlayersWithRole(votedRole)
 		g.RUnlock()
 
@@ -172,11 +172,16 @@ func (g *Game) RoleNightAction(votedRole *rolesPack.Role) {
 
 		// From this differs in which channel the game will wait for the voice,
 		//as well as the difference in the voice itself.
-		switch votedRole.IsTwoVotes {
+		var isTimerStop bool
+		switch !votedRole.IsTwoVotes {
 		case true:
-			g.twoVoterRoleNightVoting(containsNotMutedPlayers, voteDeadline)
+			isTimerStop = g.oneVoteRoleNightVoting(containsNotMutedPlayers, voteDeadline)
 		case false:
-			g.oneVoteRoleNightVoting(containsNotMutedPlayers, voteDeadline)
+			isTimerStop = g.twoVoterRoleNightVoting(containsNotMutedPlayers, voteDeadline)
+		}
+
+		if isTimerStop {
+			safeSendErrSignal(g.infoSender, g.Messenger.Night.InfoThatTimerIsDone(interactionChannel))
 		}
 
 		// Putting it back in the channel.
@@ -233,7 +238,7 @@ func (g *Game) waitOneVoteRoleFakeTimer() {
 	}
 }
 
-func (g *Game) oneVoteRoleNightVoting(containsNotMutedPlayers bool, deadline time.Duration) {
+func (g *Game) oneVoteRoleNightVoting(containsNotMutedPlayers bool, deadline time.Duration) (isTimerStop bool) {
 	var err error
 
 	if !containsNotMutedPlayers {
@@ -257,6 +262,7 @@ func (g *Game) oneVoteRoleNightVoting(containsNotMutedPlayers bool, deadline tim
 				break
 			}
 		case <-g.timerDone:
+			isTimerStop = true
 			break
 		case <-g.ctx.Done():
 			break
@@ -265,6 +271,8 @@ func (g *Game) oneVoteRoleNightVoting(containsNotMutedPlayers bool, deadline tim
 			break
 		}
 	}
+
+	return
 }
 
 func (g *Game) waitTwoVoteRoleFakeTimer() {
@@ -291,7 +299,7 @@ func (g *Game) waitTwoVoteRoleFakeTimer() {
 	}
 }
 
-func (g *Game) twoVoterRoleNightVoting(containsNotMutedPlayers bool, deadline time.Duration) {
+func (g *Game) twoVoterRoleNightVoting(containsNotMutedPlayers bool, deadline time.Duration) (isTimerStop bool) {
 	var err error
 
 	if !containsNotMutedPlayers {
@@ -314,6 +322,7 @@ func (g *Game) twoVoterRoleNightVoting(containsNotMutedPlayers bool, deadline ti
 				isNeedToContinue = true
 			}
 		case <-g.timerDone:
+			isTimerStop = true
 			break
 		case <-g.ctx.Done():
 			break
@@ -323,6 +332,8 @@ func (g *Game) twoVoterRoleNightVoting(containsNotMutedPlayers bool, deadline ti
 			break
 		}
 	}
+
+	return
 }
 
 // AffectNight changes players according to the night's actions.
@@ -349,7 +360,7 @@ func (g *Game) AffectNight(l NightLog) {
 			newDeadPersons.Append(g.Active)
 		}
 
-		// I will add add add all killed players after a minute of players a fter a minute of
+		// I will add add add all killed players after a minute of players a minute of
 		// players after a minute, so, using goroutine.
 		go g.AppendToSpectators(newDeadPersons, myTime.LastWordDeadline*time.Second)
 

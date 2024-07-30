@@ -3,6 +3,7 @@ package game
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -82,7 +83,7 @@ type Game struct {
 
 	// Presents to the application which chat is used for which role.
 	// key: str - role name
-	RoleChannels map[string]channelPack.RoleChannel
+	RoleChannels map[*rolesPack.Role]channelPack.RoleChannel
 	MainChannel  channelPack.MainChannel
 
 	// Keeps what role is voting (in night) right now.
@@ -133,7 +134,7 @@ func GetNewGame(guildID string, opts ...GameOption) *Game {
 		Dead:       &dead,
 		Spectators: &spectators,
 		// Create a map
-		RoleChannels: make(map[string]channelPack.RoleChannel),
+		RoleChannels: make(map[*rolesPack.Role]channelPack.RoleChannel),
 		VotePing:     1,
 		ctx:          context.Background(),
 	}
@@ -273,7 +274,7 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 			continue
 		}
 
-		playerChannel := g.RoleChannels[player.Role.Name]
+		playerChannel := g.RoleChannels[player.Role]
 		err = playerChannel.AddPlayer(player.Tag)
 		if err != nil {
 			return
@@ -339,8 +340,7 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 				continue
 			}
 
-			playerRoleName := player.Role.Name
-			playerInteractionChannel := g.RoleChannels[playerRoleName]
+			playerInteractionChannel := g.RoleChannels[player.Role]
 			playerInteractionChannelIID := playerInteractionChannel.GetServerID()
 			err = player.RenameAfterGettingID(g.renameProvider, playerInteractionChannelIID)
 			if err != nil {
@@ -423,6 +423,15 @@ func (g *Game) Run(ctx context.Context) <-chan Signal {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
+				defer func() {
+					if r := recover(); r != nil {
+						isStoppedByCtx = true
+						g.infoSender <- newErrSignal(
+							fmt.Errorf("panic recoved, err %v", err),
+						)
+						return
+					}
+				}()
 				isStoppedByCtx = g.run()
 			}()
 			wg.Wait()
@@ -480,7 +489,7 @@ func (g *Game) run() (isStoppedByCtx bool) {
 
 			// Validate is final?
 			winnerTeam = g.UnderstandWinnerTeam()
-			fool := (*g.Active.SearchAllPlayersWithRole(rolesPack.Fool))[0]
+			fool := (*g.Dead.ConvertToPlayers().SearchAllPlayersWithRole(rolesPack.Fool))[0]
 
 			if dayLog.Kicked != nil && *dayLog.Kicked == int(fool.ID) {
 				finishLog := g.NewFinishLog(winnerTeam, false)
@@ -561,7 +570,7 @@ func (g *Game) finish() {
 				continue
 			}
 
-			playerChannel := g.RoleChannels[player.Role.Name]
+			playerChannel := g.RoleChannels[player.Role]
 			safeSendErrSignal(g.infoSender, playerChannel.RemoveUser(player.Tag))
 		}
 

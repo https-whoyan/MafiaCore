@@ -13,7 +13,7 @@ func GetMapKeys[K cmp.Ordered, E any](mp map[K]E) []K {
 	return keys
 }
 
-func GetMapValues[K cmp.Ordered, E any](mp map[K]E) []E {
+func GetMapValues[K comparable, E any](mp map[K]E) []E {
 	var values []E
 	for _, val := range mp {
 		values = append(values, val)

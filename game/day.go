@@ -1,6 +1,7 @@
 package game
 
 import (
+	"log"
 	"math"
 	"strconv"
 	"time"
@@ -39,7 +40,7 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 	var kickedID = -1
 	var breakDownDayPlayersCount = int(math.Ceil(float64(DayPersentageToNextStage*g.Active.Len()) / 100.0))
 
-	acceptTheVote := func(voteP VoteProviderInterface) (kickedID *int) {
+	acceptTheVote := func(voteP VoteProviderInterface) (kickedID *int, isEndVoting bool) {
 		var votedPlayerID = int(g.Active.SearchPlayerByID(voteP.GetVotedPlayerID()).ID)
 		var vote, _ = strconv.Atoi(voteP.GetVote())
 
@@ -52,6 +53,7 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 		// If occurrencesMp[vote] >= breakDownDayPlayersCount
 		if occurrencesMp[vote] >= breakDownDayPlayersCount {
 			kickedID = &vote
+			return kickedID, true
 		}
 		// Case, when all players leave his vote
 		if len(votesMp) == g.Active.Len() {
@@ -65,10 +67,16 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 				if occurrence > mxOccurrence {
 					mxOccurrence = occurrence
 					mxVote = pVote
+				} else if occurrence == mxOccurrence {
+					mxVote = -1
 				}
 			}
 
-			return &mxVote
+			if mxVote == -1 {
+				return nil, true
+			}
+
+			return &mxVote, true
 		}
 
 		return
@@ -90,22 +98,29 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 	}
 
 	for {
-		isNeedToContinue := false
+		isNeedToContinue := true
 		select {
 		case <-g.ctx.Done():
 			break
 		case <-g.timerDone:
+			isNeedToContinue = false
 			break
 		case voteP := <-g.VoteChan:
 			err := g.DayVote(voteP, nil)
 			if err != nil {
-				isNeedToContinue = true
+				g.infoSender <- newErrSignal(err)
 				break
 			}
-			maybeKickedID := acceptTheVote(voteP)
-			if maybeKickedID != nil {
-				kickedID = *maybeKickedID
-				g.timerDone <- struct{}{}
+			maybeKickedID, isEnd := acceptTheVote(voteP)
+			log.Println(maybeKickedID, isEnd)
+			if isEnd {
+				if maybeKickedID != nil {
+					kickedID = *maybeKickedID
+				} else {
+					kickedID = -1
+				}
+				isNeedToContinue = false
+				g.timerStop <- struct{}{}
 				break
 			}
 		}

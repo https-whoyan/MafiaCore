@@ -30,8 +30,8 @@ func (g *Game) donReincarnation(p *player.Player) {
 		return
 	}
 	p.Role = roles.Mafia
-	safeSendErrSignal(g.infoSender, g.RoleChannels[roles.Don.Name].RemoveUser(p.Tag))
-	safeSendErrSignal(g.infoSender, g.RoleChannels[roles.Mafia.Name].AddPlayer(p.Tag))
+	safeSendErrSignal(g.infoSender, g.RoleChannels[roles.Don].RemoveUser(p.Tag))
+	safeSendErrSignal(g.infoSender, g.RoleChannels[roles.Mafia].AddPlayer(p.Tag))
 
 	f := g.Messenger.f
 	g.RUnlock()
@@ -39,6 +39,6 @@ func (g *Game) donReincarnation(p *player.Player) {
 	message = f.Bold("Hello, dear ") + f.Mention(p.ServerNick) + "." + f.LineSplitter()
 	message += "You are the last player left alive from the mafia team, so you become mafia." + f.LineSplitter()
 	message += f.Underline("Don't reveal yourself.")
-	_, err := g.RoleChannels[roles.Mafia.Name].Write([]byte(message))
+	_, err := g.RoleChannels[roles.Mafia].Write([]byte(message))
 	safeSendErrSignal(g.infoSender, err)
 }

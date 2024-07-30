@@ -19,7 +19,7 @@ func (g *Game) tryAddNewRoleChannel(ch channelPack.RoleChannel) error {
 	}
 
 	roleName := addedRole.Name
-	_, alreadyContained := g.RoleChannels[roleName]
+	_, alreadyContained := g.RoleChannels[addedRole]
 	if alreadyContained {
 		return errors.New(fmt.Sprintf("roleChannel %v already exists", roleName))
 	}
@@ -30,9 +30,9 @@ func (g *Game) SetNewRoleChannel(ch channelPack.RoleChannel) error {
 	if err := g.tryAddNewRoleChannel(ch); err != nil {
 		return err
 	}
-	roleName := ch.GetRole().Name
+	role := ch.GetRole()
 	g.Lock()
-	g.RoleChannels[roleName] = ch
+	g.RoleChannels[role] = ch
 	g.Unlock()
 	return nil
 }
