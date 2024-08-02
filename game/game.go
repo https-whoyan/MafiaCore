@@ -451,7 +451,10 @@ func (g *Game) Run(ctx context.Context) <-chan Signal {
 func (g *Game) run() (isStoppedByCtx bool) {
 	// FinishState will be set when the winner is already clear.
 	// This will be determined after the night and after the day's voting.
+	var finishLog FinishLog
+
 	for g.State != FinishState {
+		isNeedToContinue := true
 		select {
 		case <-g.ctx.Done():
 			isStoppedByCtx = true
@@ -473,9 +476,9 @@ func (g *Game) run() (isStoppedByCtx bool) {
 
 			winnerTeam := g.UnderstandWinnerTeam()
 			if winnerTeam != nil {
-				finishLog := g.NewFinishLog(winnerTeam, false)
-				g.FinishByFinishLog(finishLog)
-				return
+				finishLog = g.NewFinishLog(winnerTeam, true)
+				isNeedToContinue = false
+				break
 			}
 
 			// Day
@@ -492,17 +495,23 @@ func (g *Game) run() (isStoppedByCtx bool) {
 			fool := (*g.Dead.ConvertToPlayers().SearchAllPlayersWithRole(rolesPack.Fool))[0]
 
 			if dayLog.Kicked != nil && *dayLog.Kicked == int(fool.ID) {
-				finishLog := g.NewFinishLog(winnerTeam, false)
-				g.FinishByFinishLog(finishLog)
-				return
+				finishLog = g.NewFinishLog(nil, true)
+				isNeedToContinue = false
+				break
 			} else if winnerTeam != nil {
-				finishLog := g.NewFinishLog(winnerTeam, false)
-				g.FinishByFinishLog(finishLog)
-				return
+				finishLog = g.NewFinishLog(winnerTeam, false)
+				isNeedToContinue = false
+				break
 			}
 			g.ClearDayVotes()
 		}
+
+		if !isNeedToContinue {
+			break
+		}
 	}
+	g.ClearDayVotes()
+	g.FinishByFinishLog(finishLog)
 	return
 }
 

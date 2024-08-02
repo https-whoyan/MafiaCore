@@ -37,7 +37,7 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 
 	g.timer(deadline)
 
-	var kickedID = -1
+	var kickedPlayerID = -1
 	var breakDownDayPlayersCount = int(math.Ceil(float64(DayPersentageToNextStage*g.Active.Len()) / 100.0))
 
 	acceptTheVote := func(voteP VoteProviderInterface) (kickedID *int, isEndVoting bool) {
@@ -75,8 +75,8 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 			if mxVote == -1 {
 				return nil, true
 			}
-
-			return &mxVote, true
+			kickedID = &mxVote
+			return kickedID, true
 		}
 
 		return
@@ -84,14 +84,14 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 
 	dayLog := DayLog{
 		DayNumber: g.NightCounter,
-		IsSkip:    true,
+		IsSkip:    false,
 	}
 
 	standDayLog := func(kickedID *int) {
 		dayLog.Kicked = kickedID
 		dayLog.DayVotes = votesMp
 		dayLog.IsSkip = false
-		if *kickedID == -1 {
+		if kickedID == nil || *kickedID == -1 {
 			dayLog.Kicked = nil
 			dayLog.IsSkip = true
 		}
@@ -115,9 +115,9 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 			log.Println(maybeKickedID, isEnd)
 			if isEnd {
 				if maybeKickedID != nil {
-					kickedID = *maybeKickedID
+					kickedPlayerID = *maybeKickedID
 				} else {
-					kickedID = -1
+					kickedPlayerID = -1
 				}
 				isNeedToContinue = false
 				g.timerStop <- struct{}{}
@@ -129,7 +129,7 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 		}
 	}
 
-	standDayLog(&kickedID)
+	standDayLog(&kickedPlayerID)
 	return dayLog
 }
 

@@ -100,3 +100,4 @@ There are many roles presented in the game, you can find all of them along with 
 <hr>
 
 ## Usage
+### Game start

@@ -27,26 +27,26 @@ type DeadPlayers map[*roles.Role][]*DeadPlayer
 // Methods for NonPlayingPlayers
 // ______________________________
 
-func (s NonPlayingPlayers) GetTags() []string {
+func (s *NonPlayingPlayers) GetTags() []string {
 	var tags []string
 
-	for _, p := range s {
+	for _, p := range *s {
 		tags = append(tags, p.Tag)
 	}
 	return tags
 }
 
-func (s NonPlayingPlayers) GetUsernames() []string {
+func (s *NonPlayingPlayers) GetUsernames() []string {
 	var usernames []string
-	for _, p := range s {
+	for _, p := range *s {
 		usernames = append(usernames, p.OldNick)
 	}
 	return usernames
 }
 
-func (s NonPlayingPlayers) GetServerNicknames() []string {
+func (s *NonPlayingPlayers) GetServerNicknames() []string {
 	var serverNames []string
-	for _, p := range s {
+	for _, p := range *s {
 		serverNames = append(serverNames, p.ServerNick)
 	}
 	return serverNames
@@ -151,9 +151,9 @@ func (s *Players) ToDead(playerID IDType, reason DeadReason, dayLived int, deadP
 // DeadPlayers func s
 // ______________________
 
-func (s DeadPlayers) GetTags() []string {
+func (s *DeadPlayers) GetTags() []string {
 	var tags []string
-	for _, deadPlayers := range s {
+	for _, deadPlayers := range *s {
 		for _, p := range deadPlayers {
 			tags = append(tags, p.Tag)
 		}
