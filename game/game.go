@@ -98,9 +98,7 @@ type Game struct {
 	nightLogs []NightLog
 	dayLogs   []DayLog
 
-	nightVoteChan chan NightVoteProviderInterface
-	dayVoteChan   chan DayVoteProviderInterface
-	twoVoteChan   chan TwoVoteProviderInterface
+	voteAccepted chan struct{}
 	// Can the player choose himself
 	voteForYourself bool
 	// votePing presents a delay number for voting for the same player again.
@@ -110,8 +108,7 @@ type Game struct {
 	//
 	// Default value: 1.
 	//
-	// Adjustable by option. Set 0, If you want to keep the mechanic that a player can Vote for the same
-	// player every night, put -1 or a very large number if you want all players to have completely different votes.
+	// Adjustable by option.
 	votePing int
 
 	timerDone chan struct{}
@@ -136,10 +133,9 @@ func GetNewGame(guildID string, opts ...GameOption) *Game {
 		guildID: guildID,
 		state:   NonDefinedState,
 		// Chan s create.
-		nightVoteChan: make(chan NightVoteProviderInterface),
-		twoVoteChan:   make(chan TwoVoteProviderInterface),
-		timerDone:     make(chan struct{}),
-		timerStop:     make(chan struct{}),
+		voteAccepted: make(chan struct{}),
+		timerDone:    make(chan struct{}),
+		timerStop:    make(chan struct{}),
 		// Slices.
 		startPlayers: &start,
 		active:       &active,

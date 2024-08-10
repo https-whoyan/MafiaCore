@@ -23,7 +23,7 @@ const (
 	Muted
 )
 
-type IDType int
+type IDType int8
 
 // _______________
 // Structs
@@ -67,7 +67,7 @@ type Player struct {
 	// During the night 2 voices will be recorded here, but after the night they will be deleted immediately.
 	Votes []IDType `json:"votes"`
 	// DayVote stores the player's vote in the day vote.
-	DayVote    int         `json:"dayVote"`
+	DayVote    IDType      `json:"dayVote"`
 	LifeStatus AliveStatus `json:"lifeStatus"`
 	// InteractionStatus What a player should be doing right now
 	InteractionStatus VoteStatus `json:"interactionStatus"`

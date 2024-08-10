@@ -89,8 +89,8 @@ func (g *Game) RoleNightAction(votedRole *rolesPack.Role) {
 		g.RUnlock()
 
 		var (
-			nonEmptyVote1 = EmptyVoteInt
-			nonEmptyVote2 = EmptyVoteInt
+			nonEmptyVote1 playerPack.IDType = EmptyVoteInt
+			nonEmptyVote2 playerPack.IDType = EmptyVoteInt
 		)
 
 		sendToOtherEmptyVotes := func(nonEmptyVoter *playerPack.Player) {
@@ -217,30 +217,15 @@ func (g *Game) RoleNightAction(votedRole *rolesPack.Role) {
 func (g *Game) waitOneVoteRoleFakeTimer() {
 	g.randomTimer()
 
-	for {
-		isNeedToContinue := false
-		select {
-		case voteP := <-g.VoteChan:
-			// All votes will be with errors
-			err := g.nightOneVote(voteP, nil)
-			g.infoSender <- newErrSignal(err)
-			isNeedToContinue = true
-			break
-		case <-g.timerDone:
-			break
-		case <-g.ctx.Done():
-			break
-		}
-
-		if !isNeedToContinue {
-			break
-		}
+	select {
+	case <-g.timerDone:
+		break
+	case <-g.ctx.Done():
+		break
 	}
 }
 
 func (g *Game) oneVoteRoleNightVoting(containsNotMutedPlayers bool, deadline time.Duration) (isTimerStop bool) {
-	var err error
-
 	if !containsNotMutedPlayers {
 		g.waitOneVoteRoleFakeTimer()
 		return
@@ -248,60 +233,31 @@ func (g *Game) oneVoteRoleNightVoting(containsNotMutedPlayers bool, deadline tim
 
 	g.timer(deadline)
 
-	for {
-		isNeedToContinue := false
-		select {
-		case voteP := <-g.VoteChan:
-			err = g.nightOneVote(voteP, nil)
-			if err == nil {
-				g.timerStop <- struct{}{}
-				break
-			} else {
-				g.infoSender <- newErrSignal(err)
-				isNeedToContinue = true
-				break
-			}
-		case <-g.timerDone:
-			isTimerStop = true
-			break
-		case <-g.ctx.Done():
-			break
-		}
-		if !isNeedToContinue {
-			break
-		}
+	select {
+	case <-g.voteAccepted:
+		g.timerStop <- struct{}{}
+		break
+	case <-g.timerDone:
+		isTimerStop = true
+		break
+	case <-g.ctx.Done():
+		break
 	}
-
 	return
 }
 
 func (g *Game) waitTwoVoteRoleFakeTimer() {
 	g.randomTimer()
 
-	for {
-		isNeedToContinue := false
-		select {
-		case voteP := <-g.TwoVoteChan:
-			// All votes will be with errors
-			err := g.nightTwoVote(voteP, nil)
-			g.infoSender <- newErrSignal(err)
-			isNeedToContinue = true
-			break
-		case <-g.timerDone:
-			break
-		case <-g.ctx.Done():
-			break
-		}
-
-		if !isNeedToContinue {
-			break
-		}
+	select {
+	case <-g.timerDone:
+		break
+	case <-g.ctx.Done():
+		break
 	}
 }
 
 func (g *Game) twoVoterRoleNightVoting(containsNotMutedPlayers bool, deadline time.Duration) (isTimerStop bool) {
-	var err error
-
 	if !containsNotMutedPlayers {
 		g.waitTwoVoteRoleFakeTimer()
 		return
@@ -309,30 +265,16 @@ func (g *Game) twoVoterRoleNightVoting(containsNotMutedPlayers bool, deadline ti
 
 	g.timer(deadline)
 
-	for {
-		isNeedToContinue := false
-		select {
-		case voteP := <-g.TwoVoteChan:
-			err = g.nightTwoVote(voteP, nil)
-			if err == nil {
-				g.timerStop <- struct{}{}
-				break
-			} else {
-				g.infoSender <- newErrSignal(err)
-				isNeedToContinue = true
-			}
-		case <-g.timerDone:
-			isTimerStop = true
-			break
-		case <-g.ctx.Done():
-			break
-		}
-
-		if !isNeedToContinue {
-			break
-		}
+	select {
+	case <-g.voteAccepted:
+		g.timerStop <- struct{}{}
+		break
+	case <-g.timerDone:
+		isTimerStop = true
+		break
+	case <-g.ctx.Done():
+		break
 	}
-
 	return
 }
 
@@ -356,7 +298,7 @@ func (g *Game) AffectNight(l NightLog) {
 		var newDeadPersons = &playerPack.Players{}
 
 		for _, deadID := range l.Dead {
-			g.active.ToDead(playerPack.IDType(deadID), playerPack.KilledAtNight, g.nightCounter, g.dead)
+			g.active.ToDead(deadID, playerPack.KilledAtNight, g.nightCounter, g.dead)
 			newDeadPersons.Append(g.active)
 		}
 

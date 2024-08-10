@@ -27,8 +27,8 @@ type NightLog struct {
 	NightNumber int `json:"number"`
 	// Key - ID of the voted player
 	// Value - usually a vote, but in case the role uses 2 votes - 2 votes at once.
-	NightVotes map[int][]int `json:"votes"`
-	Dead       []int         `json:"dead"`
+	NightVotes map[player.IDType][]player.IDType `json:"votes"`
+	Dead       []player.IDType                   `json:"dead"`
 }
 
 // NewNightLog Gives the log after nightfall.
@@ -52,25 +52,25 @@ func (g *Game) NewNightLog() NightLog {
 		defer g.RUnlock()
 
 		nightNumber := g.nightCounter
-		nightVotes := make(map[int][]int)
+		nightVotes := make(map[player.IDType][]player.IDType)
 		for _, p := range *g.active {
 			if p.Role.NightVoteOrder == -1 {
 				continue
 			}
 
-			var votes []int
+			var votes []player.IDType
 			n := len(p.Votes)
 			if p.Role.IsTwoVotes {
-				votes = []int{p.Votes[n-2], p.Votes[n-1]}
+				votes = []player.IDType{p.Votes[n-2], p.Votes[n-1]}
 			} else {
-				votes = []int{p.Votes[n-1]}
+				votes = []player.IDType{p.Votes[n-1]}
 			}
-			nightVotes[int(p.ID)] = votes
+			nightVotes[p.ID] = votes
 		}
-		var dead []int
+		var dead []player.IDType
 		for _, p := range *g.active {
 			if p.LifeStatus == player.Dead {
-				dead = append(dead, int(p.ID))
+				dead = append(dead, p.ID)
 			}
 		}
 		return NightLog{
@@ -89,9 +89,9 @@ type DayLog struct {
 	DayNumber int `json:"number"`
 	// Key - ID of the player who was voted for during the day to be excluded from the game
 	// Value - number of votes.
-	DayVotes map[int]int `json:"votes"`
-	Kicked   *int        `json:"kicked"`
-	IsSkip   bool        `json:"isSkip"`
+	DayVotes map[player.IDType]player.IDType `json:"votes"`
+	Kicked   *player.IDType                  `json:"kicked"`
+	IsSkip   bool                            `json:"isSkip"`
 }
 
 type FinishLog struct {
