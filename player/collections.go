@@ -15,7 +15,7 @@ type NonPlayingPlayers []*NonPlayingPlayer
 // Players Type
 // Key - player ID
 //
-// Used only for g.Active
+// Used only for g.active
 type Players map[IDType]*Player
 
 // DeadPlayers

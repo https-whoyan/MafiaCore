@@ -21,12 +21,12 @@ func (g *Game) Night() NightLog {
 		g.SetState(NightState)
 		g.infoSender <- g.newSwitchStateSignal()
 
-		err := g.Messenger.Night.SendInitialNightMessage(g.MainChannel)
+		err := g.messenger.Night.SendInitialNightMessage(g.mainChannel)
 		safeSendErrSignal(g.infoSender, err)
 
 		// I'm getting the voting order
 		g.RLock()
-		orderToVote := g.RolesConfig.GetOrderToVote()
+		orderToVote := g.rolesConfig.GetOrderToVote()
 		g.RUnlock()
 
 		// For each of the votes
@@ -38,13 +38,13 @@ func (g *Game) Night() NightLog {
 		// On this line, all votes are accepted.
 		// I hereby signify that the voting is over.
 		g.Lock()
-		g.NightVoting = nil
+		g.nightVoting = nil
 		g.Unlock()
 		g.RLock()
 
 		// I do the rest of the interactions that come after the vote.
 		var needToProcessPlayers []*playerPack.Player
-		for _, p := range *g.Active {
+		for _, p := range *g.active {
 			if p.Role.CalculationOrder > 0 && !p.Role.UrgentCalculation {
 				needToProcessPlayers = append(needToProcessPlayers, p)
 			}
@@ -78,14 +78,14 @@ func (g *Game) RoleNightAction(votedRole *rolesPack.Role) {
 		var err error
 
 		g.Lock()
-		g.NightVoting = votedRole
+		g.nightVoting = votedRole
 		g.Unlock()
 		g.infoSender <- g.newSwitchVoteSignal()
 		// Finding all the players with that role.
 		// And finding nightInteraction channel
 		g.RLock()
-		interactionChannel := g.RoleChannels[votedRole]
-		allPlayersWithRole := g.Active.SearchAllPlayersWithRole(votedRole)
+		interactionChannel := g.roleChannels[votedRole]
+		allPlayersWithRole := g.active.SearchAllPlayersWithRole(votedRole)
 		g.RUnlock()
 
 		var (
@@ -156,7 +156,7 @@ func (g *Game) RoleNightAction(votedRole *rolesPack.Role) {
 		// And if a player is locked, I tell him about it and add him to spectators for the duration of the Vote.
 		for _, voter := range *allPlayersWithRole {
 			if voter.InteractionStatus == playerPack.Muted {
-				err = g.Messenger.Night.SendToPlayerThatIsMutedMessage(voter, interactionChannel)
+				err = g.messenger.Night.SendToPlayerThatIsMutedMessage(voter, interactionChannel)
 				safeSendErrSignal(g.infoSender, err)
 
 				// Add to spectator
@@ -165,7 +165,7 @@ func (g *Game) RoleNightAction(votedRole *rolesPack.Role) {
 
 			} else {
 				containsNotMutedPlayers = true
-				err = g.Messenger.Night.SendInvitingToVoteMessage(voter, voteDeadlineInt, interactionChannel)
+				err = g.messenger.Night.SendInvitingToVoteMessage(voter, voteDeadlineInt, interactionChannel)
 				safeSendErrSignal(g.infoSender, err)
 			}
 		}
@@ -181,7 +181,7 @@ func (g *Game) RoleNightAction(votedRole *rolesPack.Role) {
 		}
 
 		if isTimerStop {
-			safeSendErrSignal(g.infoSender, g.Messenger.Night.InfoThatTimerIsDone(interactionChannel))
+			safeSendErrSignal(g.infoSender, g.messenger.Night.InfoThatTimerIsDone(interactionChannel))
 		}
 
 		// Putting it back in the channel.
@@ -190,7 +190,7 @@ func (g *Game) RoleNightAction(votedRole *rolesPack.Role) {
 				err = channelPack.FromSpectatorToUser(interactionChannel, voter.Tag)
 				safeSendErrSignal(g.infoSender, err)
 
-				err = g.Messenger.Night.SendThanksToMutedPlayerMessage(voter, interactionChannel)
+				err = g.messenger.Night.SendThanksToMutedPlayerMessage(voter, interactionChannel)
 				safeSendErrSignal(g.infoSender, err)
 			}
 		}
@@ -222,7 +222,7 @@ func (g *Game) waitOneVoteRoleFakeTimer() {
 		select {
 		case voteP := <-g.VoteChan:
 			// All votes will be with errors
-			err := g.NightOneVote(voteP, nil)
+			err := g.nightOneVote(voteP, nil)
 			g.infoSender <- newErrSignal(err)
 			isNeedToContinue = true
 			break
@@ -252,7 +252,7 @@ func (g *Game) oneVoteRoleNightVoting(containsNotMutedPlayers bool, deadline tim
 		isNeedToContinue := false
 		select {
 		case voteP := <-g.VoteChan:
-			err = g.NightOneVote(voteP, nil)
+			err = g.nightOneVote(voteP, nil)
 			if err == nil {
 				g.timerStop <- struct{}{}
 				break
@@ -283,7 +283,7 @@ func (g *Game) waitTwoVoteRoleFakeTimer() {
 		select {
 		case voteP := <-g.TwoVoteChan:
 			// All votes will be with errors
-			err := g.NightTwoVote(voteP, nil)
+			err := g.nightTwoVote(voteP, nil)
 			g.infoSender <- newErrSignal(err)
 			isNeedToContinue = true
 			break
@@ -313,7 +313,7 @@ func (g *Game) twoVoterRoleNightVoting(containsNotMutedPlayers bool, deadline ti
 		isNeedToContinue := false
 		select {
 		case voteP := <-g.TwoVoteChan:
-			err = g.NightTwoVote(voteP, nil)
+			err = g.nightTwoVote(voteP, nil)
 			if err == nil {
 				g.timerStop <- struct{}{}
 				break
@@ -356,8 +356,8 @@ func (g *Game) AffectNight(l NightLog) {
 		var newDeadPersons = &playerPack.Players{}
 
 		for _, deadID := range l.Dead {
-			g.Active.ToDead(playerPack.IDType(deadID), playerPack.KilledAtNight, g.NightCounter, g.Dead)
-			newDeadPersons.Append(g.Active)
+			g.active.ToDead(playerPack.IDType(deadID), playerPack.KilledAtNight, g.nightCounter, g.dead)
+			newDeadPersons.Append(g.active)
 		}
 
 		// I will add add add all killed players after a minute of players a minute of
@@ -365,11 +365,11 @@ func (g *Game) AffectNight(l NightLog) {
 		go g.AppendToSpectators(newDeadPersons, myTime.LastWordDeadline*time.Second)
 
 		// Sending a message about who died today.
-		err := g.Messenger.AfterNight.SendAfterNightMessage(l, g.MainChannel)
+		err := g.messenger.AfterNight.SendAfterNightMessage(l, g.mainChannel)
 		safeSendErrSignal(g.infoSender, err)
 		// Then, for each person try to do his reincarnation
 		g.Unlock()
-		for _, p := range *g.Active {
+		for _, p := range *g.active {
 			g.reincarnation(p)
 		}
 		return
@@ -380,8 +380,8 @@ func (g *Game) AppendToSpectators(newSpectators interface{ GetTags() []string },
 	ticker := time.NewTicker(after)
 
 	g.RLock()
-	mainChannel := g.MainChannel
-	roleChannels := g.RoleChannels
+	mainChannel := g.mainChannel
+	roleChannels := g.roleChannels
 	g.RUnlock()
 
 	defer ticker.Stop()

@@ -16,7 +16,7 @@ func TestTimer(t *testing.T) {
 	t.Parallel()
 	t.Run("Test1", func(t *testing.T) {
 		t.Parallel()
-		ch := make(chan VoteProviderInterface)
+		ch := make(chan NightVoteProviderInterface)
 		done := make(chan struct{})
 		duration := 5 * time.Second
 
@@ -39,7 +39,7 @@ func TestTimer(t *testing.T) {
 
 	t.Run("Test2", func(t *testing.T) {
 		t.Parallel()
-		ch := make(chan VoteProviderInterface)
+		ch := make(chan NightVoteProviderInterface)
 		done := make(chan struct{})
 		duration := 5 * time.Second
 
@@ -63,7 +63,7 @@ func TestTimer(t *testing.T) {
 
 	t.Run("Test3", func(t *testing.T) {
 		t.Parallel()
-		ch := make(chan VoteProviderInterface)
+		ch := make(chan NightVoteProviderInterface)
 		done := make(chan struct{})
 		duration := 5 * time.Second
 
@@ -87,7 +87,7 @@ func TestTimer(t *testing.T) {
 
 	t.Run("Test4", func(t *testing.T) {
 		t.Parallel()
-		ch := make(chan VoteProviderInterface)
+		ch := make(chan NightVoteProviderInterface)
 		done := make(chan struct{})
 		duration := 2 * time.Second
 

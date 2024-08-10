@@ -19,7 +19,7 @@ func (g *Game) tryAddNewRoleChannel(ch channelPack.RoleChannel) error {
 	}
 
 	roleName := addedRole.Name
-	_, alreadyContained := g.RoleChannels[addedRole]
+	_, alreadyContained := g.roleChannels[addedRole]
 	if alreadyContained {
 		return errors.New(fmt.Sprintf("roleChannel %v already exists", roleName))
 	}
@@ -32,7 +32,7 @@ func (g *Game) SetNewRoleChannel(ch channelPack.RoleChannel) error {
 	}
 	role := ch.GetRole()
 	g.Lock()
-	g.RoleChannels[role] = ch
+	g.roleChannels[role] = ch
 	g.Unlock()
 	return nil
 }
@@ -69,7 +69,7 @@ func (g *Game) SetMainChannel(ch channelPack.MainChannel) error {
 	if ch == nil {
 		return errors.New("no main channel")
 	}
-	g.MainChannel = ch
+	g.mainChannel = ch
 	return nil
 }
 
@@ -80,11 +80,11 @@ func (g *Game) SetMainChannel(ch channelPack.MainChannel) error {
 func (g *Game) SetStartPlayers(players *playerPack.NonPlayingPlayers) {
 	g.Lock()
 	defer g.Unlock()
-	g.StartPlayers = players
+	g.startPlayers = players
 }
 
 func (g *Game) SetSpectators(spectators *playerPack.NonPlayingPlayers) {
 	g.Lock()
 	defer g.Unlock()
-	g.Spectators = spectators
+	g.spectators = spectators
 }

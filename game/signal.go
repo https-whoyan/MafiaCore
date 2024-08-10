@@ -113,8 +113,8 @@ func (g *Game) newSwitchStateSignal() Signal {
 		InitialTime:      time.Now(),
 		SwitchSignalType: SwitchStateSwitchStateType,
 		Value: SwitchStateValue{
-			CurrentState:  g.State,
-			PreviousValue: g.PreviousState,
+			CurrentState:  g.state,
+			PreviousValue: g.previousState,
 		},
 	}
 }
@@ -125,8 +125,8 @@ func (g *Game) newSwitchVoteSignal() Signal {
 		InitialTime:      time.Now(),
 		SwitchSignalType: SwitchNightVotedRoleSwitchStateType,
 		Value: SwitchNightVoteRoleSwitchValue{
-			CurrentVotedRole: g.NightVoting,
-			IsTwoVotes:       g.NightVoting.IsTwoVotes,
+			CurrentVotedRole: g.nightVoting,
+			IsTwoVotes:       g.nightVoting.IsTwoVotes,
 		},
 	}
 }

@@ -94,7 +94,7 @@ func TestNightCheckDeadlock_EmptyVotes(t *testing.T) {
 }
 
 /*
-PlayersCount: 7,
+playersCount: 7,
 RolesMp: map[string]*RoleConfig{
 	"Peaceful": {
 		Role:  roles.Peaceful,
@@ -129,7 +129,7 @@ func TestNightConfig7_3(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mappedPlayers := playersHelper(*g.Active)
+		mappedPlayers := playersHelper(*g.active)
 		vCfg := votesCfg{
 			roles.Whore: {
 				role:  roles.Whore,
@@ -162,7 +162,7 @@ func TestNightConfig7_3(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mappedPlayers := playersHelper(*g.Active)
+		mappedPlayers := playersHelper(*g.active)
 		vCfg := votesCfg{
 			roles.Whore: {
 				role:  roles.Whore,
@@ -195,7 +195,7 @@ func TestNightConfig7_3(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mappedPlayers := playersHelper(*g.Active)
+		mappedPlayers := playersHelper(*g.active)
 		doctorID := mappedPlayers[roles.Doctor][0].ID
 		vCfg := votesCfg{
 			roles.Whore: {
@@ -230,7 +230,7 @@ func TestNightConfig7_3(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mappedPlayers := playersHelper(*g.Active)
+		mappedPlayers := playersHelper(*g.active)
 		detectiveID := mappedPlayers[roles.Doctor][0].ID
 		vCfg := votesCfg{
 			roles.Whore: {
@@ -267,7 +267,7 @@ func TestNightConfig7_3(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mappedPlayers := playersHelper(*g.Active)
+		mappedPlayers := playersHelper(*g.active)
 		doctorID := mappedPlayers[roles.Doctor][0].ID
 		vCfg := votesCfg{
 			roles.Whore: {
@@ -301,7 +301,7 @@ func TestNightConfig7_3(t *testing.T) {
 
 /*
 	{
-		PlayersCount: 10,
+		playersCount: 10,
 		RolesMp: map[string]*RoleConfig{
 			"Peaceful": {
 				Role:  roles.Peaceful,
@@ -351,7 +351,7 @@ func TestNightConfig10_2(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mappedPlayers := playersHelper(*g.Active)
+		mappedPlayers := playersHelper(*g.active)
 		detectiveID := mappedPlayers[roles.Detective][0].ID
 		maniacID := mappedPlayers[roles.Maniac][0].ID
 		vCfg := votesCfg{
@@ -443,7 +443,7 @@ func TestNightConfig10_2(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mappedPlayers := playersHelper(*g.Active)
+		mappedPlayers := playersHelper(*g.active)
 		maniacID := mappedPlayers[roles.Maniac][0].ID
 		doctorID := mappedPlayers[roles.Doctor][0].ID
 
@@ -496,7 +496,7 @@ func TestNightConfig10_2(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mappedPlayers := playersHelper(*g.Active)
+		mappedPlayers := playersHelper(*g.active)
 		maniacID := mappedPlayers[roles.Maniac][0].ID
 
 		randomPeacefulID1 := mappedPlayers[roles.Peaceful][0].ID
@@ -556,7 +556,7 @@ func TestNightConfig10_2(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mappedPlayers := playersHelper(*g.Active)
+		mappedPlayers := playersHelper(*g.active)
 		detectiveID := mappedPlayers[roles.Detective][0].ID
 		vCfg := votesCfg{
 			roles.Detective: {
@@ -602,7 +602,7 @@ func TestNightConfig10_2(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mappedPlayers := playersHelper(*g.Active)
+		mappedPlayers := playersHelper(*g.active)
 
 		detectiveID := mappedPlayers[roles.Detective][0].ID
 
@@ -650,7 +650,7 @@ func TestNightConfig10_2(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mappedPlayers := playersHelper(*g.Active)
+		mappedPlayers := playersHelper(*g.active)
 
 		donID := mappedPlayers[roles.Don][0].ID
 		citizenID := mappedPlayers[roles.Citizen][0].ID
@@ -701,7 +701,7 @@ func TestNightConfig10_2(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mappedPlayers := playersHelper(*g.Active)
+		mappedPlayers := playersHelper(*g.active)
 
 		doctorID := mappedPlayers[roles.Doctor][0].ID
 		citizenID := mappedPlayers[roles.Citizen][0].ID
@@ -752,7 +752,7 @@ func TestNightConfig10_2(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mappedPlayers := playersHelper(*g.Active)
+		mappedPlayers := playersHelper(*g.active)
 
 		citizenID := mappedPlayers[roles.Citizen][0].ID
 		rndPeacefulID1 := mappedPlayers[roles.Peaceful][0].ID
@@ -804,7 +804,7 @@ func TestNightConfig10_2(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mappedPlayers := playersHelper(*g.Active)
+		mappedPlayers := playersHelper(*g.active)
 
 		rndPeacefulID1 := mappedPlayers[roles.Peaceful][0].ID
 		rndPeacefulID2 := mappedPlayers[roles.Peaceful][1].ID
@@ -858,7 +858,7 @@ func TestNightConfig10_2(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mappedPlayers := playersHelper(*g.Active)
+		mappedPlayers := playersHelper(*g.active)
 
 		rndPeacefulID1 := mappedPlayers[roles.Peaceful][0].ID
 		rndPeacefulID2 := mappedPlayers[roles.Peaceful][1].ID
@@ -920,7 +920,7 @@ func TestReincarnation(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mappedPlayers := playersHelper(*g.Active)
+		mappedPlayers := playersHelper(*g.active)
 		detectiveID := mappedPlayers[roles.Detective][0].ID
 		citizenID := mappedPlayers[roles.Citizen][0].ID
 		mafiaID := mappedPlayers[roles.Mafia][0].ID
@@ -986,7 +986,7 @@ func TestReincarnation(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mappedPlayers := playersHelper(*g.Active)
+		mappedPlayers := playersHelper(*g.active)
 		detectiveID := mappedPlayers[roles.Detective][0].ID
 		maniacID := mappedPlayers[roles.Maniac][0].ID
 		don := mappedPlayers[roles.Don][0]

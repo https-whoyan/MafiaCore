@@ -57,7 +57,7 @@ func (g *Game) mafiaInteraction(mafia *player.Player) {
 func (g *Game) donInteraction(don *player.Player) *InteractionMessage {
 	g.Lock()
 	defer g.Unlock()
-	f := g.Messenger.f
+	f := g.messenger.f
 
 	checkedPlayer, isEmpty := g.interactionHelper(don)
 	if isEmpty {
@@ -67,7 +67,7 @@ func (g *Game) donInteraction(don *player.Player) *InteractionMessage {
 	checkedPlayerRoleName := checkedPlayer.Role.Name
 
 	message := InteractionMessage("Checked player " + f.Block(strconv.Itoa(int(checkedPlayer.ID))) + ", role: " +
-		g.Messenger.f.Block(checkedPlayerRoleName))
+		g.messenger.f.Block(checkedPlayerRoleName))
 	return &message
 }
 
@@ -110,9 +110,9 @@ func (g *Game) detectiveInteraction(detective *player.Player) *InteractionMessag
 		return nil
 	}
 
-	f := g.Messenger.f
-	checkedPlayer1 := g.Active.SearchPlayerByGameID(strconv.Itoa(checkedID1))
-	checkedPlayer2 := g.Active.SearchPlayerByGameID(strconv.Itoa(checkedID2))
+	f := g.messenger.f
+	checkedPlayer1 := g.active.SearchPlayerByGameID(strconv.Itoa(checkedID1))
+	checkedPlayer2 := g.active.SearchPlayerByGameID(strconv.Itoa(checkedID2))
 
 	isEqualsTeams := checkedPlayer1.Role.Team == checkedPlayer2.Role.Team
 
@@ -162,6 +162,6 @@ func (g *Game) interactionHelper(p *player.Player) (toVoted *player.Player, isEm
 		isEmpty = true
 		return
 	}
-	toVoted = (*g.Active)[player.IDType(lastVote)]
+	toVoted = (*g.active)[player.IDType(lastVote)]
 	return
 }

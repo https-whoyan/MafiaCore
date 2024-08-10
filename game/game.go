@@ -28,7 +28,7 @@ const (
 	NotRenameMode RenameMode = iota
 	// RenameInGuildMode used if you want to rename user everything in your guild
 	RenameInGuildMode
-	// RenameOnlyInMainChannelMode used if you want to rename user only in MainChannel
+	// RenameOnlyInMainChannelMode used if you want to rename user only in mainChannel
 	RenameOnlyInMainChannelMode
 	// RenameInAllChannelsMode used if you want to rename user in every channel (Roles and Main)
 	RenameInAllChannelsMode
@@ -43,7 +43,7 @@ type GameOption func(g *Game)
 func FMTerOpt(fmtEr fmtPack.FmtInterface) GameOption {
 	return func(g *Game) {
 		messenger := NewGameMessanger(fmtEr, g)
-		g.Messenger = messenger
+		g.messenger = messenger
 	}
 }
 func RenamePrOpt(rP playerPack.RenameUserProviderInterface) GameOption {
@@ -53,10 +53,13 @@ func RenameModeOpt(mode RenameMode) GameOption {
 	return func(g *Game) { g.renameMode = mode }
 }
 func VotePingOpt(votePing int) GameOption {
-	return func(g *Game) { g.VotePing = votePing }
+	return func(g *Game) { g.votePing = votePing }
 }
 func LoggerOpt(logger Logger) GameOption {
 	return func(g *Game) { g.logger = logger }
+}
+func VoteForYourselfOpt(voteForYourself bool) GameOption {
+	return func(g *Game) { g.voteForYourself = voteForYourself }
 }
 
 // __________________
@@ -65,77 +68,88 @@ func LoggerOpt(logger Logger) GameOption {
 
 type Game struct {
 	sync.RWMutex
+	ctx context.Context
 	// Presents the server where the game is running.
 	// Or GameID.
 	// Depends on the implementation.
 	//
 	// Possibly, may be empty.
-	GuildID      string                  `json:"guildID"`
-	PlayersCount int                     `json:"playersCount"`
-	RolesConfig  *configPack.RolesConfig `json:"rolesConfig"`
-	NightCounter int                     `json:"nightCounter"`
-	TimeStart    time.Time               `json:"timeStart"`
+	guildID      string
+	playersCount int
+	rolesConfig  *configPack.RolesConfig
+	nightCounter int
 
-	StartPlayers *playerPack.NonPlayingPlayers `json:"startPlayers"`
-	Active       *playerPack.Players           `json:"active"`
-	Dead         *playerPack.DeadPlayers       `json:"dead"`
-	Spectators   *playerPack.NonPlayingPlayers `json:"spectators"`
+	timeStart time.Time
+	endTime   time.Time
+
+	startPlayers *playerPack.NonPlayingPlayers
+	active       *playerPack.Players
+	dead         *playerPack.DeadPlayers
+	spectators   *playerPack.NonPlayingPlayers
 
 	// Presents to the application which chat is used for which role.
 	// key: str - role name
-	RoleChannels map[*rolesPack.Role]channelPack.RoleChannel
-	MainChannel  channelPack.MainChannel
+	roleChannels map[*rolesPack.Role]channelPack.RoleChannel
+	mainChannel  channelPack.MainChannel
 
 	// Keeps what role is voting (in night) right now.
-	NightVoting *rolesPack.Role `json:"nightVoting"`
-	VoteChan    chan VoteProviderInterface
-	TwoVoteChan chan TwoVoteProviderInterface
+	nightVoting *rolesPack.Role
+
+	nightLogs []NightLog
+	dayLogs   []DayLog
+
+	nightVoteChan chan NightVoteProviderInterface
+	dayVoteChan   chan DayVoteProviderInterface
+	twoVoteChan   chan TwoVoteProviderInterface
 	// Can the player choose himself
-	VoteForYourself bool `json:"voteForYourself"`
-	// VotePing presents a delay number for voting for the same player again.
+	voteForYourself bool
+	// votePing presents a delay number for voting for the same player again.
 	//
-	// Example: A player has voted for players with IDs 5, 4, 3, and VotePing is 2.
+	// Example: A player has voted for players with IDs 5, 4, 3, and votePing is 2.
 	// So the player will not be able to Vote for players 4 and 3 the next night.
 	//
 	// Default value: 1.
 	//
 	// Adjustable by option. Set 0, If you want to keep the mechanic that a player can Vote for the same
 	// player every night, put -1 or a very large number if you want all players to have completely different votes.
-	VotePing int `json:"votePing"`
+	votePing int
 
 	timerDone chan struct{}
 	timerStop chan struct{}
 
-	PreviousState State `json:"previousState"`
-	State         State `json:"state"`
-	Messenger     *Messenger
+	previousState State
+	state         State
+	messenger     *Messenger
 	// Use to rename user in your interpretation
 	renameProvider playerPack.RenameUserProviderInterface
 	renameMode     RenameMode
 	infoSender     chan<- Signal
 	logger         Logger
-	ctx            context.Context
 }
 
 func GetNewGame(guildID string, opts ...GameOption) *Game {
+	start := playerPack.NonPlayingPlayers{}
 	active := make(playerPack.Players)
 	dead := make(playerPack.DeadPlayers)
 	spectators := playerPack.NonPlayingPlayers{}
 	newGame := &Game{
-		GuildID: guildID,
-		State:   NonDefinedState,
+		guildID: guildID,
+		state:   NonDefinedState,
 		// Chan s create.
-		VoteChan:    make(chan VoteProviderInterface),
-		TwoVoteChan: make(chan TwoVoteProviderInterface),
-		timerDone:   make(chan struct{}),
-		timerStop:   make(chan struct{}),
+		nightVoteChan: make(chan NightVoteProviderInterface),
+		twoVoteChan:   make(chan TwoVoteProviderInterface),
+		timerDone:     make(chan struct{}),
+		timerStop:     make(chan struct{}),
 		// Slices.
-		Active:     &active,
-		Dead:       &dead,
-		Spectators: &spectators,
+		startPlayers: &start,
+		active:       &active,
+		dead:         &dead,
+		spectators:   &spectators,
+		nightLogs:    make([]NightLog, 0),
+		dayLogs:      make([]DayLog, 0),
 		// Create a map
-		RoleChannels: make(map[*rolesPack.Role]channelPack.RoleChannel),
-		VotePing:     1,
+		roleChannels: make(map[*rolesPack.Role]channelPack.RoleChannel),
+		votePing:     1,
 		ctx:          context.Background(),
 	}
 	// Set options
@@ -151,10 +165,10 @@ func GetNewGame(guildID string, opts ...GameOption) *Game {
 /*
 	After RegisterGame I must have all information about
 		1) Tags and usernames of players
-		2) RoleChannels info
-		3) GuildID (Ok, optional)
-		4) MainChannel implementation
-		5) Spectators
+		2) roleChannels info
+		3) guildID (Ok, optional)
+		4) mainChannel implementation
+		5) spectators
 		6) And chan s (See GetNewGame)
 		7) fmtEr
 		8) renameProvider
@@ -185,16 +199,16 @@ func (g *Game) validationStart(cfg *configPack.RolesConfig) error {
 		return EmptyConfigErr
 	}
 
-	if cfg.PlayersCount != len(*(g.StartPlayers)) {
+	if cfg.PlayersCount != len(*(g.startPlayers)) {
 		err = errors.Join(err, MismatchPlayersCountAndGamePlayersCountErr)
 	}
-	if len(g.RoleChannels) != len(rolesPack.GetAllNightInteractionRolesNames()) {
+	if len(g.roleChannels) != len(rolesPack.GetAllNightInteractionRolesNames()) {
 		err = errors.Join(err, NotFullRoleChannelInfoErr)
 	}
-	if g.MainChannel == nil {
+	if g.mainChannel == nil {
 		err = errors.Join(err, NotMainChannelInfoErr)
 	}
-	if g.Messenger == nil {
+	if g.messenger == nil {
 		err = errors.Join(err, EmptyFMTerErr)
 	}
 	if g.renameMode == NotRenameMode {
@@ -223,7 +237,7 @@ It is also used to validate all fields of the game.
 This is the penultimate and mandatory function that you must call before starting the game.
 
 Before using it, you must have all options set, all players must have known ServerIDs,
-Tags and serverUsernames (all of which must be in StartPlayers), and all channels,
+Tags and serverUsernames (all of which must be in startPlayers), and all channels,
 both role-based and non-role-based, must be set.
 See the realization of the ValidationStart function (line 139)
 
@@ -243,22 +257,22 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 	// Set config and players count
 	g.SetState(StartingState)
 	g.Lock()
-	g.RolesConfig = cfg
-	g.PlayersCount = cfg.PlayersCount
-	g.TimeStart = time.Now()
+	g.rolesConfig = cfg
+	g.playersCount = cfg.PlayersCount
+	g.timeStart = time.Now()
 	g.Unlock()
 
 	// Get Players
-	tags := g.StartPlayers.GetTags()
-	oldNicknames := g.StartPlayers.GetUsernames()
-	serverUsernames := g.StartPlayers.GetServerNicknames()
+	tags := g.startPlayers.GetTags()
+	oldNicknames := g.startPlayers.GetUsernames()
+	serverUsernames := g.startPlayers.GetServerNicknames()
 	players, err := playerPack.GeneratePlayers(tags, oldNicknames, serverUsernames, cfg)
 	if err != nil {
 		return err
 	}
 	// And state it to active field
 	g.Lock()
-	g.Active = &players
+	g.active = &players
 	g.Unlock()
 
 	g.RLock()
@@ -269,12 +283,12 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 
 	// We need to add spectators and players to channel.
 	// First, add users to role channels.
-	for _, player := range *g.Active {
+	for _, player := range *g.active {
 		if player.Role.NightVoteOrder == -1 {
 			continue
 		}
 
-		playerChannel := g.RoleChannels[player.Role]
+		playerChannel := g.roleChannels[player.Role]
 		err = playerChannel.AddPlayer(player.Tag)
 		if err != nil {
 			return
@@ -282,8 +296,8 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 	}
 
 	// Then add spectators to game
-	for _, spectator := range *g.Spectators {
-		for _, interactionChannel := range g.RoleChannels {
+	for _, spectator := range *g.spectators {
+		for _, interactionChannel := range g.roleChannels {
 			err = interactionChannel.AddSpectator(spectator.Tag)
 			if err != nil {
 				return err
@@ -292,15 +306,15 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 	}
 
 	// Then, add all players to main chat.
-	for _, player := range *g.StartPlayers {
-		err = g.MainChannel.AddPlayer(player.Tag)
+	for _, player := range *g.startPlayers {
+		err = g.mainChannel.AddPlayer(player.Tag)
 		if err != nil {
 			return err
 		}
 	}
 	// And spectators.
-	for _, spectator := range *g.Spectators {
-		err = g.MainChannel.AddSpectator(spectator.Tag)
+	for _, spectator := range *g.spectators {
+		err = g.mainChannel.AddSpectator(spectator.Tag)
 		if err != nil {
 			return err
 		}
@@ -312,22 +326,22 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 	switch g.renameMode {
 	case NotRenameMode: // No actions
 	case RenameInGuildMode:
-		for _, player := range *g.Active {
+		for _, player := range *g.active {
 			err = player.RenameAfterGettingID(g.renameProvider, "")
 			if err != nil {
 				return err
 			}
 		}
-		for _, spectator := range *g.Spectators {
+		for _, spectator := range *g.spectators {
 			err = spectator.RenameToSpectator(g.renameProvider, "")
 			if err != nil {
 				return err
 			}
 		}
 	case RenameOnlyInMainChannelMode:
-		mainChannelServerID := g.MainChannel.GetServerID()
+		mainChannelServerID := g.mainChannel.GetServerID()
 
-		for _, player := range *g.Active {
+		for _, player := range *g.active {
 			err = player.RenameAfterGettingID(g.renameProvider, mainChannelServerID)
 			if err != nil {
 				return err
@@ -335,12 +349,12 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 		}
 	case RenameInAllChannelsMode:
 		// Add to Role Channels.
-		for _, player := range *g.Active {
+		for _, player := range *g.active {
 			if player.Role.NightVoteOrder == -1 {
 				continue
 			}
 
-			playerInteractionChannel := g.RoleChannels[player.Role]
+			playerInteractionChannel := g.roleChannels[player.Role]
 			playerInteractionChannelIID := playerInteractionChannel.GetServerID()
 			err = player.RenameAfterGettingID(g.renameProvider, playerInteractionChannelIID)
 			if err != nil {
@@ -349,9 +363,9 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 		}
 
 		// Add to main channel
-		mainChannelServerID := g.MainChannel.GetServerID()
+		mainChannelServerID := g.mainChannel.GetServerID()
 
-		for _, player := range *g.Active {
+		for _, player := range *g.active {
 			err = player.RenameAfterGettingID(g.renameProvider, mainChannelServerID)
 			if err != nil {
 				return err
@@ -363,7 +377,8 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 	if g.logger != nil {
 		g.RUnlock()
 		g.Lock()
-		err = g.logger.InitNewGame(g)
+		deepClone := g.GetDeepClone()
+		err = deepClone.Logger.InitNewGame(deepClone)
 		g.Unlock()
 		g.RLock()
 		return err
@@ -403,7 +418,7 @@ func (g *Game) Run(ctx context.Context) <-chan Signal {
 
 	go func() {
 		// Send InteractionMessage About New Game
-		err := g.Messenger.Init.SendStartMessage(g.MainChannel)
+		err := g.messenger.Init.SendStartMessage(g.mainChannel)
 		// Used for participants to familiarize themselves with their roles, and so on.
 		time.Sleep(timePack.RoleInfoCount * time.Second)
 		safeSendErrSignal(g.infoSender, err)
@@ -453,22 +468,24 @@ func (g *Game) run() (isStoppedByCtx bool) {
 	// This will be determined after the night and after the day's voting.
 	var finishLog FinishLog
 
-	for g.State != FinishState {
+	for g.state != FinishState {
 		isNeedToContinue := true
 		select {
 		case <-g.ctx.Done():
 			isStoppedByCtx = true
 		default:
 			g.Lock()
-			g.NightCounter++
+			g.nightCounter++
 			g.Unlock()
 
 			// Night
 
 			nightLog := g.Night()
+			g.nightLogs = append(g.nightLogs, nightLog)
 			g.AffectNight(nightLog)
 			if g.logger != nil {
-				err := g.logger.SaveNightLog(g, nightLog)
+				deepClone := g.GetDeepClone()
+				err := deepClone.Logger.SaveNightLog(deepClone, nightLog)
 				safeSendErrSignal(g.infoSender, err)
 			}
 
@@ -484,15 +501,17 @@ func (g *Game) run() (isStoppedByCtx bool) {
 			// Day
 
 			dayLog := g.Day()
+			g.dayLogs = append(g.dayLogs, dayLog)
 			g.AffectDay(dayLog)
 			if g.logger != nil {
-				err := g.logger.SaveDayLog(g, dayLog)
+				deepClone := g.GetDeepClone()
+				err := deepClone.Logger.SaveDayLog(deepClone, dayLog)
 				safeSendErrSignal(g.infoSender, err)
 			}
 
 			// Validate is final?
 			winnerTeam = g.UnderstandWinnerTeam()
-			fool := (*g.Dead.ConvertToPlayers().SearchAllPlayersWithRole(rolesPack.Fool))[0]
+			fool := (*g.dead.ConvertToPlayers().SearchAllPlayersWithRole(rolesPack.Fool))[0]
 
 			if dayLog.Kicked != nil && *dayLog.Kicked == int(fool.ID) {
 				finishLog = g.NewFinishLog(nil, true)
@@ -529,7 +548,7 @@ var (
 
 func (g *Game) FinishByFinishLog(l FinishLog) {
 	finishingFuncOnce.Do(func() {
-		err := g.Messenger.Finish.SendMessagesAboutEndOfGame(l, g.MainChannel)
+		err := g.messenger.Finish.SendMessagesAboutEndOfGame(l, g.mainChannel)
 		safeSendErrSignal(g.infoSender, err)
 		g.SetState(FinishState)
 		g.infoSender <- g.newSwitchStateSignal()
@@ -556,7 +575,7 @@ func (g *Game) FinishAnyway() {
 			return
 		}
 		content := "The game was suspended."
-		_, err := g.MainChannel.Write([]byte(g.Messenger.Finish.f.Bold(content)))
+		_, err := g.mainChannel.Write([]byte(g.messenger.Finish.f.Bold(content)))
 		safeSendErrSignal(g.infoSender, err)
 		g.SetState(FinishState)
 		g.infoSender <- g.newSwitchStateSignal()
@@ -566,43 +585,43 @@ func (g *Game) FinishAnyway() {
 }
 
 func (g *Game) finish() {
-
 	finishOnce.Do(func() {
+		g.endTime = time.Now()
 		if !g.IsFinished() {
 			sendFatalSignal(g.infoSender, errors.New("game is not finished"))
 			return
 		}
 
 		// Delete from channels
-		for _, player := range *g.Active {
+		for _, player := range *g.active {
 			if player.Role.NightVoteOrder == -1 {
 				continue
 			}
 
-			playerChannel := g.RoleChannels[player.Role]
+			playerChannel := g.roleChannels[player.Role]
 			safeSendErrSignal(g.infoSender, playerChannel.RemoveUser(player.Tag))
 		}
 
 		// Then remove spectators from game
-		for _, tag := range playerPack.GetTags(g.Dead, g.Spectators) {
-			for _, interactionChannel := range g.RoleChannels {
+		for _, tag := range playerPack.GetTags(g.dead, g.spectators) {
+			for _, interactionChannel := range g.roleChannels {
 				safeSendErrSignal(g.infoSender, interactionChannel.RemoveUser(tag))
 			}
 		}
 
 		// Then, remove all players of main chat.
-		for _, player := range *g.StartPlayers {
-			safeSendErrSignal(g.infoSender, g.MainChannel.RemoveUser(player.Tag))
+		for _, player := range *g.startPlayers {
+			safeSendErrSignal(g.infoSender, g.mainChannel.RemoveUser(player.Tag))
 		}
 		// And spectators.
-		for _, spectator := range *g.Spectators {
-			safeSendErrSignal(g.infoSender, g.MainChannel.RemoveUser(spectator.Tag))
+		for _, spectator := range *g.spectators {
+			safeSendErrSignal(g.infoSender, g.mainChannel.RemoveUser(spectator.Tag))
 		}
 
 		// _______________
 		// Renaming.
 		// _______________
-		activePlayersAndSpectators := append(*g.StartPlayers, *g.Spectators...)
+		activePlayersAndSpectators := append(*g.startPlayers, *g.spectators...)
 		switch g.renameMode {
 		case NotRenameMode: // No actions
 		case RenameInGuildMode:
@@ -610,7 +629,7 @@ func (g *Game) finish() {
 				safeSendErrSignal(g.infoSender, player.RenameUserAfterGame(g.renameProvider, ""))
 			}
 		case RenameOnlyInMainChannelMode:
-			mainChannelServerID := g.MainChannel.GetServerID()
+			mainChannelServerID := g.mainChannel.GetServerID()
 
 			for _, player := range activePlayersAndSpectators {
 				err := player.RenameUserAfterGame(g.renameProvider, mainChannelServerID)
@@ -619,7 +638,7 @@ func (g *Game) finish() {
 		case RenameInAllChannelsMode:
 			// Rename from Role Channels.
 			for _, player := range activePlayersAndSpectators {
-				for _, interactionChannel := range g.RoleChannels {
+				for _, interactionChannel := range g.roleChannels {
 					interactionChannelID := interactionChannel.GetServerID()
 
 					err := player.RenameUserAfterGame(g.renameProvider, interactionChannelID)
@@ -628,7 +647,7 @@ func (g *Game) finish() {
 			}
 
 			// Rename from main channel
-			mainChannelServerID := g.MainChannel.GetServerID()
+			mainChannelServerID := g.mainChannel.GetServerID()
 
 			for _, player := range activePlayersAndSpectators {
 				err := player.RenameUserAfterGame(g.renameProvider, mainChannelServerID)

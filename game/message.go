@@ -92,7 +92,7 @@ func (m initMessenger) SendStartMessage(writer io.Writer) error {
 	message += myFMT.BoldUnderline(f, "Today, our players:") + nl
 
 	var aboutIDMessages []string
-	activePlayers := cnvPack.GetMapValues(*m.g.Active)
+	activePlayers := cnvPack.GetMapValues(*m.g.active)
 	sort.Slice(activePlayers, func(i, j int) bool {
 		return activePlayers[j].ID < activePlayers[j].ID
 	})
@@ -104,12 +104,12 @@ func (m initMessenger) SendStartMessage(writer io.Writer) error {
 	}
 	message += strings.Join(aboutIDMessages, nl)
 
-	if len(*m.g.Spectators) != 0 {
+	if len(*m.g.spectators) != 0 {
 		message += dNl
 		message += "From behind the scenes to support us: "
 		var spectatorMentions []string
 
-		for _, spectator := range *m.g.Spectators {
+		for _, spectator := range *m.g.spectators {
 			spectatorMentions = append(spectatorMentions, f.Mention(spectator.ServerNick))
 		}
 		message += strings.Join(spectatorMentions, ", ")
@@ -117,7 +117,7 @@ func (m initMessenger) SendStartMessage(writer io.Writer) error {
 
 	message += nl + iL + nl
 	message += myFMT.ItalicUnderline(f, "Selected game configuration:") + nl
-	message += m.g.RolesConfig.GetMessageAboutConfig(f)
+	message += m.g.rolesConfig.GetMessageAboutConfig(f)
 	message += nl + iL + nl
 
 	// Redo it if it false!!!!
@@ -125,7 +125,7 @@ func (m initMessenger) SendStartMessage(writer io.Writer) error {
 	message += nl
 	message += "Also, " + f.Bold("if you have an active night role, you have been added to special channels, where "+
 		"you can send commands to the bot anonymously")
-	if len(*m.g.Spectators) != 0 {
+	if len(*m.g.spectators) != 0 {
 		message += f.Italic(" (but there's no hiding from observers))))")
 	}
 	message += "." + nl
@@ -151,8 +151,8 @@ type nightMessenger struct {
 
 func (m *nightMessenger) SendInitialNightMessage(w io.Writer) error {
 	f := m.f
-	message := f.Bold("Night №") + f.Block(strconv.Itoa(m.g.NightCounter)) + " is coming." + f.LineSplitter()
-	message += fmt.Sprintf("On this night you are played by %v players.", len(*m.g.Active))
+	message := f.Bold("Night №") + f.Block(strconv.Itoa(m.g.nightCounter)) + " is coming." + f.LineSplitter()
+	message += fmt.Sprintf("On this night you are played by %v players.", len(*m.g.active))
 	return m.sendMessage(message, w)
 }
 
@@ -212,7 +212,7 @@ func (m afterNightMessenger) SendAfterNightMessage(l NightLog, w io.Writer) erro
 		f.Bold(" people")
 	var mentions []string
 	idsSet := cnvPack.SliceToSet(l.Dead)
-	for _, p := range *m.g.Active {
+	for _, p := range *m.g.active {
 		if idsSet[int(p.ID)] {
 			mentions = append(mentions, f.Mention(p.ServerNick))
 		}
@@ -236,7 +236,7 @@ func (m dayMessenger) SendMessageAboutNewDay(w io.Writer, deadline time.Duration
 	f := m.f
 
 	var message string
-	message += "Comes a " + f.Block(strconv.Itoa(m.g.NightCounter)) + " day. "
+	message += "Comes a " + f.Block(strconv.Itoa(m.g.nightCounter)) + " day. "
 	strMinutes := strconv.Itoa(int(math.Ceil(deadline.Minutes())))
 	message += f.Bold("You have a ") + f.Block(strMinutes) + " minutes to set your votes."
 	message += f.LineSplitter()
@@ -280,8 +280,8 @@ func (m finishMessenger) SendParticipantAboutMessage() string {
 	var message string
 	message = myFMT.BoldUnderline(f, "And the roles of the participants were:") + f.LineSplitter() + f.LineSplitter()
 
-	allPartitionsMp := m.g.Active
-	allPartitionsMp.Append(m.g.Dead.ConvertToPlayers())
+	allPartitionsMp := m.g.active
+	allPartitionsMp.Append(m.g.dead.ConvertToPlayers())
 
 	allPartitionsSlice := cnvPack.GetMapValues(*allPartitionsMp)
 
@@ -329,7 +329,7 @@ func (m finishMessenger) getFoolWinnerMessage() string {
 
 	// Search fool
 	var fool = &playerPack.Player{}
-	for _, p := range *m.g.Active {
+	for _, p := range *m.g.active {
 		if p.Role == rolesPack.Fool {
 			fool = p
 		}

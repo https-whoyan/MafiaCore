@@ -87,11 +87,11 @@ func takeANight(g *game.Game, c votesCfg) {
 					continue
 				}
 				if votedRole.IsTwoVotes {
-					vP := c[votedRole].toTwoVotePr(g.Active)
+					vP := c[votedRole].toTwoVotePr(g.active)
 					g.TwoVoteChan <- vP
 					continue
 				}
-				vP := c[votedRole].toVotePr(g.Active)
+				vP := c[votedRole].toVotePr(g.active)
 				g.VoteChan <- vP
 			}
 		}
@@ -113,13 +113,13 @@ func (v voteCfg) toTwoVotePr(players *player.Players) *game.TwoVotesProvider {
 	}
 }
 
-func (v voteCfg) toVotePr(players *player.Players) *game.VoteProvider {
+func (v voteCfg) toVotePr(players *player.Players) *game.NightVoteProvider {
 	votedPlayers := *(players.SearchAllPlayersWithRole(v.role))
 	var votedPlayer = &player.Player{}
 	for _, p := range votedPlayers {
 		votedPlayer = p
 	}
-	return &game.VoteProvider{
+	return &game.NightVoteProvider{
 		VotedPlayerID:  strconv.Itoa(int(votedPlayer.ID)),
 		Vote:           strconv.Itoa(int(v.votes[0])),
 		IsServerUserID: false,

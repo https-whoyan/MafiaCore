@@ -12,7 +12,7 @@ import (
 // This file contains everything about the voting mechanics.
 
 // ___________________________________
-// VoteProviderInterface
+// NightVoteProviderInterface
 // ___________________________________
 
 const (
@@ -20,10 +20,10 @@ const (
 	EmptyVoteInt = -1
 )
 
-// VoteProviderInterface Interface for voice reception (both daytime and nighttime).
+// oneVoteProviderInterface Interface for voice reception
 //
-// This allows you to implement the Vote command in your interpretation.
-type VoteProviderInterface interface {
+// Interface implementations allows you to implement the Vote command in your interpretation.
+type oneVoteProviderInterface interface {
 	// GetVotedPlayerID Provides 2 fields: information about the voting player.
 	//
 	// The 1st field provides the ID of the player who voted,
@@ -31,28 +31,45 @@ type VoteProviderInterface interface {
 	GetVotedPlayerID() (votedUserID string, isUserServerID bool)
 	// GetVote provide one field: ID of the player being voted for.
 	// If you need empty Vote, use the EmptyVoteStr constant.
-	GetVote() (ID string)
+	GetVote() (ID string, isServerUserID bool)
 }
 
-// VoteProvider default implementation of VoteProviderInterface
-type VoteProvider struct {
-	VotedPlayerID  string
-	Vote           string
-	IsServerUserID bool
+// NightVoteProviderInterface Interface for night voice reception
+//
+// Same as oneVoteProviderInterface, but using only at night.
+type NightVoteProviderInterface interface {
+	oneVoteProviderInterface
 }
 
-func NewVoteProvider(votedPlayerID string, vote string, isServerUserID bool) *VoteProvider {
-	return &VoteProvider{
-		VotedPlayerID:  votedPlayerID,
-		Vote:           vote,
-		IsServerUserID: isServerUserID,
+// NightVoteProvider default implementation of NightVoteProviderInterface
+type NightVoteProvider struct {
+	VotedPlayerID                                string
+	Vote                                         string
+	IsServerUserIDByPlayer, IsServerUserIDByVote bool
+}
+
+func NewVoteProvider(votedPlayerID string, vote string, isServerUserIDByPlayer, isServerUserIDByVote bool) NightVoteProviderInterface {
+	return &NightVoteProvider{
+		VotedPlayerID:          votedPlayerID,
+		Vote:                   vote,
+		IsServerUserIDByPlayer: isServerUserIDByPlayer,
+		IsServerUserIDByVote:   isServerUserIDByVote,
 	}
 }
 
-func (p *VoteProvider) GetVotedPlayerID() (votedUserID string, isUserServerID bool) {
-	return p.VotedPlayerID, p.IsServerUserID
+func (p *NightVoteProvider) GetVotedPlayerID() (votedUserID string, isUserServerID bool) {
+	return p.VotedPlayerID, p.IsServerUserIDByPlayer
 }
-func (p *VoteProvider) GetVote() (ID string) { return p.Vote }
+func (p *NightVoteProvider) GetVote() (ID string, isUserServerID bool) {
+	return p.Vote, p.IsServerUserIDByVote
+}
+
+// DayVoteProviderInterface Interface for day voice reception
+//
+// Same as oneVoteProviderInterface, but using only at day.
+type DayVoteProviderInterface interface {
+	oneVoteProviderInterface
+}
 
 // TwoVoteProviderInterface A special channel used only  for roles that specify 2 voices rather
 // than one (example: detective)
@@ -61,159 +78,189 @@ func (p *VoteProvider) GetVote() (ID string) { return p.Vote }
 // 2 voices - IDs of 2 players it wants to check, so I decided to make a separate interface for it
 type TwoVoteProviderInterface interface {
 	GetVotedPlayerID() (votedUserID string, isUserServerID bool)
-	GetVote() (ID1 string, ID2 string)
+	GetVote() (ID1 string, ID2 string, isServerUserID bool)
 }
 
 // TwoVotesProvider default implementation of TwoVoteProviderInterface
 type TwoVotesProvider struct {
-	VotedPlayerID  string
-	Vote1, Vote2   string
-	IsServerUserID bool
+	VotedPlayerID                                string
+	Vote1, Vote2                                 string
+	IsServerUserIDByPlayer, IsServerUserIDByVote bool
 }
 
-func NewTwoVoteProvider(votedPlayerID string, vote1, vote2 string, isServerUserID bool) *TwoVotesProvider {
+func NewTwoVoteProvider(votedPlayerID string, vote1, vote2 string,
+	isServerUserIDByPlayer, isServerUserIDByVote bool) TwoVoteProviderInterface {
 	return &TwoVotesProvider{
-		VotedPlayerID:  votedPlayerID,
-		Vote1:          vote1,
-		Vote2:          vote2,
-		IsServerUserID: isServerUserID,
+		VotedPlayerID:          votedPlayerID,
+		Vote1:                  vote1,
+		Vote2:                  vote2,
+		IsServerUserIDByPlayer: isServerUserIDByPlayer,
+		IsServerUserIDByVote:   isServerUserIDByVote,
 	}
 }
 
 func (p *TwoVotesProvider) GetVotedPlayerID() (votedUserID string, isUserServerID bool) {
-	return p.VotedPlayerID, p.IsServerUserID
+	return p.VotedPlayerID, p.IsServerUserIDByPlayer
 }
-func (p *TwoVotesProvider) GetVote() (ID1, ID2 string) { return p.Vote1, p.Vote2 }
+func (p *TwoVotesProvider) GetVote() (ID1, ID2 string, isServerUserID bool) {
+	return p.Vote1, p.Vote2, p.IsServerUserIDByVote
+}
 
 // _______________________________
 // Vote Validators
 // _______________________________
 
 var (
-	NilValidatorErr       = errors.New("nil Validator")
-	InVotePlayerNotFound  = errors.New("voted player not found")
-	IncorrectVoteType     = errors.New("incorrect Vote type")
-	IncorrectVoteChannel  = errors.New("incorrect Vote channel")
-	IncorrectVotedPlayer  = errors.New("incorrect voted player")
-	VotePlayerNotFound    = errors.New("Vote player not found")
-	PlayerIsMutedErr      = errors.New("player is muted")
-	VotePlayerIsNotAlive  = errors.New("Vote player is not alive")
-	VotePingError         = errors.New("player get same Vote before")
-	IncorrectVoteTime     = errors.New("incorrect Vote time")
-	CannotVoteToYourself  = errors.New("cannot vote to yourself")
-	OneVoteRequiredErr    = errors.New("one Vote required")
-	TwoVoteRequiredErr    = errors.New("two Vote required")
-	TwoVotesOneOfEmptyErr = errors.New("both votes must be either blank or not blank")
+	IsNotGameStartedErr = errors.New("game is not started")
+	NilValidatorErr     = errors.New("nil Validator")
+
+	InVotePlayerNotFound = errors.New("voted player not found")
+	IncorrectVoteType    = errors.New("incorrect Vote type")
+
+	IncorrectVoteChannel = errors.New("incorrect Vote channel")
+	IncorrectVotedPlayer = errors.New("incorrect voted player")
+
+	VotePlayerNotFound      = errors.New("vote player not found")
+	PlayerIsMutedErr        = errors.New("player is muted")
+	VotePlayerIsNotAlive    = errors.New("vote player is not alive")
+	VotePingError           = errors.New("player get same Vote before")
+	IncorrectVoteTime       = errors.New("incorrect Vote time")
+	ToVotedPlayerIsNotAlive = errors.New("toVoted player is not alive")
+	CannotVoteToYourself    = errors.New("cannot vote to yourself")
+	OneVoteRequiredErr      = errors.New("one Vote required")
+
+	TwoVoteRequiredErr      = errors.New("two Vote required")
+	TwoVotesOneOfEmptyErr   = errors.New("both votes must be either blank or not blank")
+	TwoVotesSimilarVotesErr = errors.New("votes are similar")
 )
 
 // _________________________
 // Validators
 // _________________________
 
-// voteProviderValidator is validator for VoteProviderInterface
-func (g *Game) voteProviderValidator(vP VoteProviderInterface) error {
+func (g *Game) basicVoteValidator(vP interface{ GetVotedPlayerID() (string, bool) }) error {
+	if g.ctx == nil {
+		return IsNotGameStartedErr
+	}
 	if vP == nil {
 		return NilValidatorErr
 	}
 	votedPlayerID, isServerID := vP.GetVotedPlayerID()
-	votedPlayer := g.Active.SearchPlayerByID(votedPlayerID, isServerID)
+	votedPlayer := g.active.SearchPlayerByID(votedPlayerID, isServerID)
 	if votedPlayer == nil {
 		return InVotePlayerNotFound
-	}
-	vote := vP.GetVote()
-	if vote == EmptyVoteStr {
-		return nil
-	}
-	_, err := strconv.Atoi(vote)
-	if err != nil {
-		return IncorrectVoteType
 	}
 	if votedPlayer.LifeStatus != player.Alive {
 		return VotePlayerIsNotAlive
 	}
-	toVotePlayer := g.Active.SearchPlayerByID(vote, false)
-	if toVotePlayer == nil {
-		return VotePlayerNotFound
+	if votedPlayer.InteractionStatus == player.Muted {
+		return PlayerIsMutedErr
 	}
-	if votedPlayer.ID == toVotePlayer.ID && !g.VoteForYourself {
+	return nil
+}
+
+func (g *Game) oneVoteValidator(vP oneVoteProviderInterface) error {
+	if err := g.basicVoteValidator(vP); err != nil {
+		return err
+	}
+	votedPlayer, isServerID := vP.GetVotedPlayerID()
+	voter := g.active.SearchPlayerByID(votedPlayer, isServerID)
+	vote, isServerID := vP.GetVote()
+	if vote == EmptyVoteStr {
+		return nil
+	}
+	toVoted := g.active.SearchPlayerByID(vote, isServerID)
+	if toVoted == nil {
+		return IncorrectVoteType
+	}
+	if toVoted.LifeStatus != player.Alive {
+		return ToVotedPlayerIsNotAlive
+	}
+	if !g.voteForYourself && voter == toVoted {
 		return CannotVoteToYourself
 	}
 	return nil
 }
 
-// nightVoteValidatorByChannelIID performs the same validation as NightVoteValidator.
-//
-// Use it, if you want, that day Vote should be in a particular channel.
-func (g *Game) nightVoteValidatorByChannelIID(vP VoteProviderInterface, channelIID string) error {
-	sliceChannels := converter.GetMapValues(g.RoleChannels)
-	foundedChannel := channel.SearchRoleChannelByID(sliceChannels, channelIID)
-	if foundedChannel == nil {
-		return IncorrectVoteChannel
+func (g *Game) twoVoteValidator(gV interface{ GetVotes() (string, string, bool) }) error {
+	vote1, vote2, isServerID := gV.GetVotes()
+	if vote1 == EmptyVoteStr && vote2 == EmptyVoteStr {
+		return nil
 	}
-	return g.NightVoteValidator(vP, foundedChannel)
+	if vote1 == EmptyVoteStr || vote2 == EmptyVoteStr {
+		return TwoVotesOneOfEmptyErr
+	}
+	if vote1 == vote2 {
+		return TwoVotesSimilarVotesErr
+	}
+	toVoted1 := g.active.SearchPlayerByID(vote1, isServerID)
+	toVoted2 := g.active.SearchPlayerByID(vote2, isServerID)
+	if toVoted1 == nil || toVoted2 == nil {
+		return IncorrectVoteType
+	}
+	if toVoted1.LifeStatus != player.Alive {
+		return ToVotedPlayerIsNotAlive
+	}
+	if toVoted2.LifeStatus != player.Alive {
+		return ToVotedPlayerIsNotAlive
+	}
+	return nil
 }
 
-// NightVoteValidator also check roleChannel.Role and vP.VotedPlayer role.
+// nightVoteValidator also check roleChannel.Role and vP.VotedPlayer role.
 // Use nil if you don't need for this checking
-func (g *Game) NightVoteValidator(vP VoteProviderInterface, roleChannel channel.RoleChannel) error {
-	if err := g.voteProviderValidator(vP); err != nil {
+func (g *Game) nightVoteValidator(vP NightVoteProviderInterface, roleChannel channel.RoleChannel) error {
+	if err := g.oneVoteValidator(vP); err != nil {
 		return err
 	}
 
-	if g.State != NightState {
+	if g.state != NightState {
 		return IncorrectVoteTime
 	}
 
-	votedPlayerID, isServerID := vP.GetVotedPlayerID()
-	votedPlayer := g.Active.SearchPlayerByID(votedPlayerID, isServerID)
-	if g.NightVoting != votedPlayer.Role {
+	votedPlayerID, isServerIDByVoter := vP.GetVotedPlayerID()
+	votedPlayer := g.active.SearchPlayerByID(votedPlayerID, isServerIDByVoter)
+	if g.nightVoting != votedPlayer.Role {
 		return IncorrectVotedPlayer
 	}
-	if g.NightVoting.IsTwoVotes {
-		return TwoVoteRequiredErr
-	}
-	if roleChannel != nil && g.NightVoting != roleChannel.GetRole() {
+	if roleChannel != nil && g.nightVoting != roleChannel.GetRole() {
 		return IncorrectVoteChannel
 	}
-	if votedPlayer.InteractionStatus == player.Muted {
-		return PlayerIsMutedErr
-	}
-	vote, _ := strconv.Atoi(vP.GetVote())
-	if vote == EmptyVoteInt {
-		return nil
-	}
+	vote, isServerIDByVote := vP.GetVote()
+	toVotePlayer := g.active.SearchPlayerByID(vote, isServerIDByVote)
+	toVotePlayerID := toVotePlayer.ID
 	previousVotesMp := make(map[int]bool)
-	startIndex := max(0, len(votedPlayer.Votes)-g.VotePing)
+	startIndex := max(0, len(votedPlayer.Votes)-g.votePing)
 	for i := startIndex; i <= len(votedPlayer.Votes)-1; i++ {
 		previousVotesMp[votedPlayer.Votes[i]] = true
 	}
 	// ValidatedBefore
-	if previousVotesMp[vote] {
+	if previousVotesMp[toVotePlayerID] {
 		return VotePingError
 	}
 	return nil
 }
 
-// DayVoteValidatorByChannelIID performs the same validation as DayVoteValidator
-func (g *Game) DayVoteValidatorByChannelIID(vP VoteProviderInterface, channelIID string) error {
+// dayVoteValidatorByChannelIID performs the same validation as dayVoteValidator
+func (g *Game) dayVoteValidatorByChannelIID(vP NightVoteProviderInterface, channelIID string) error {
 	var allChannels []channel.Channel
-	allRoleChannels := converter.GetMapValues(g.RoleChannels)
+	allRoleChannels := converter.GetMapValues(g.roleChannels)
 	allChannels = append(allChannels, channel.RoleSliceToChannelSlice(allRoleChannels)...)
 
-	allChannels = append(allChannels, g.MainChannel)
+	allChannels = append(allChannels, g.mainChannel)
 
 	channelVotedFrom := channel.SearchChannelByGameID(allChannels, channelIID)
 	if channelVotedFrom == nil {
 		return IncorrectVoteChannel
 	}
-	return g.DayVoteValidator(vP)
+	return g.dayVoteValidator(vP)
 }
 
-func (g *Game) DayVoteValidator(vP VoteProviderInterface) error {
-	if g.State != DayState {
+func (g *Game) dayVoteValidator(vP NightVoteProviderInterface) error {
+	if g.state != DayState {
 		return IncorrectVoteTime
 	}
-	return g.voteProviderValidator(vP)
+	return g.nightVoteProviderValidator(vP)
 }
 
 func (g *Game) twoVoteProviderValidator(vP TwoVoteProviderInterface) error {
@@ -221,12 +268,15 @@ func (g *Game) twoVoteProviderValidator(vP TwoVoteProviderInterface) error {
 		return NilValidatorErr
 	}
 	votedPlayerID, isServerID := vP.GetVotedPlayerID()
-	votedPlayer := g.Active.SearchPlayerByID(votedPlayerID, isServerID)
-	if g.State != NightState {
-		return IncorrectVoteTime
-	}
+	votedPlayer := g.active.SearchPlayerByID(votedPlayerID, isServerID)
 	if votedPlayer == nil {
 		return InVotePlayerNotFound
+	}
+	if votedPlayer.InteractionStatus == player.Muted {
+		return PlayerIsMutedErr
+	}
+	if g.nightVoting != votedPlayer.Role {
+		return IncorrectVotedPlayer
 	}
 	if !votedPlayer.Role.IsTwoVotes {
 		return OneVoteRequiredErr
@@ -238,50 +288,45 @@ func (g *Game) twoVoteProviderValidator(vP TwoVoteProviderInterface) error {
 	if vote1 == EmptyVoteStr || vote2 == EmptyVoteStr {
 		return IncorrectVoteType
 	}
-	_, err := strconv.Atoi(vote1)
-	if err != nil {
-		return IncorrectVoteType
+	if !isServerID {
+		_, err1 := strconv.Atoi(vote1)
+		_, err2 := strconv.Atoi(vote2)
+		if err1 != nil || err2 != nil {
+			return IncorrectVoteType
+		}
 	}
 	if votedPlayer.LifeStatus != player.Alive {
 		return VotePlayerIsNotAlive
 	}
-	toVotePlayer1 := g.Active.SearchPlayerByID(votedPlayerID, isServerID)
-	toVotePlayer2 := g.Active.SearchPlayerByID(votedPlayerID, isServerID)
+	toVotePlayer1 := g.active.SearchPlayerByID(votedPlayerID, isServerID)
+	toVotePlayer2 := g.active.SearchPlayerByID(votedPlayerID, isServerID)
 	if toVotePlayer1 == nil || toVotePlayer2 == nil {
 		return VotePlayerNotFound
 	}
 	return nil
 }
 
-// NightTwoVoteValidatorByChannelIID performs the same validation as NightVoteValidator.
+// nightTwoVoteValidatorByChannelIID performs the same validation as nightVoteValidator.
 //
 // Use it, if you want, that day Vote should be in a particular channel.
-func (g *Game) NightTwoVoteValidatorByChannelIID(vP TwoVoteProviderInterface, channelIID string) error {
-	sliceChannels := converter.GetMapValues(g.RoleChannels)
+func (g *Game) nightTwoVoteValidatorByChannelIID(vP TwoVoteProviderInterface, channelIID string) error {
+	sliceChannels := converter.GetMapValues(g.roleChannels)
 	foundedChannel := channel.SearchRoleChannelByID(sliceChannels, channelIID)
 	if foundedChannel == nil {
 		return IncorrectVoteChannel
 	}
-	return g.NightTwoVoteValidator(vP, foundedChannel)
+	return g.nightTwoVoteValidator(vP, foundedChannel)
 }
 
-// NightTwoVoteValidator also check roleChannel.Role and vP.VotedPlayer role.
+// nightTwoVoteValidator also check roleChannel.Role and vP.VotedPlayer role.
 // Use nil if you don't need for this checking
-func (g *Game) NightTwoVoteValidator(vP TwoVoteProviderInterface, roleChannel channel.RoleChannel) error {
+func (g *Game) nightTwoVoteValidator(vP TwoVoteProviderInterface, roleChannel channel.RoleChannel) error {
 	if err := g.twoVoteProviderValidator(vP); err != nil {
 		return err
 	}
 
-	votedPlayerID, isServerID := vP.GetVotedPlayerID()
-	votedPlayer := g.Active.SearchPlayerByID(votedPlayerID, isServerID)
-	if g.NightVoting != votedPlayer.Role {
-		return IncorrectVotedPlayer
-	}
-	if roleChannel != nil && g.NightVoting != roleChannel.GetRole() {
+	if roleChannel == nil || g.nightVoting != roleChannel.GetRole() {
 		return IncorrectVoteChannel
-	}
-	if votedPlayer.InteractionStatus == player.Muted {
-		return PlayerIsMutedErr
 	}
 	return nil
 }
@@ -297,26 +342,11 @@ func NewOptionalChannelIID(channelIID string) *OptionalChannelIID {
 	return &OptionalChannelIID{channelIID}
 }
 
-// NightOneVote  opt is OptionalChannelIID optional field Mechanism.
-//
-// If you not need it, pass nil to the field.
-// If yes, use NewOptionalChannelIID
-//
-// Immediately puts all the right votes and changes the value of the fields if no error occurred.
-func (g *Game) NightOneVote(vP VoteProviderInterface, opt *OptionalChannelIID) error {
-	var err error
-	if opt == nil {
-		err = g.NightVoteValidator(vP, nil)
-	} else {
-		err = g.nightVoteValidatorByChannelIID(vP, opt.channelIID)
-	}
-	if err != nil {
-		return err
-	}
-
+// nightOneVote used after validation, and stand votes
+func (g *Game) nightOneVote(vP NightVoteProviderInterface) {
 	votedPlayerID, isServerID := vP.GetVotedPlayerID()
 	g.RLock()
-	votedPlayer := g.Active.SearchPlayerByID(votedPlayerID, isServerID)
+	votedPlayer := g.active.SearchPlayerByID(votedPlayerID, isServerID)
 	g.RUnlock()
 	vote := vP.GetVote()
 	g.Lock()
@@ -328,21 +358,20 @@ func (g *Game) NightOneVote(vP VoteProviderInterface, opt *OptionalChannelIID) e
 		votedPlayer.Votes = append(votedPlayer.Votes, intVote)
 	}
 	g.Unlock()
-	return nil
 }
 
-// NightTwoVote opt is OptionalChannelIID optional field Mechanism.
+// nightTwoVote opt is OptionalChannelIID optional field Mechanism.
 //
 // If you not need it, pass nil to the field.
 // If yes, use NewOptionalChannelIID
 //
 // Immediately puts all the right votes and changes the value of the fields if no error occurred.
-func (g *Game) NightTwoVote(vP TwoVoteProviderInterface, opt *OptionalChannelIID) error {
+func (g *Game) nightTwoVote(vP TwoVoteProviderInterface, opt *OptionalChannelIID) error {
 	var err error
 	if opt == nil {
-		err = g.NightTwoVoteValidator(vP, nil)
+		err = g.nightTwoVoteValidator(vP, nil)
 	} else {
-		err = g.NightTwoVoteValidatorByChannelIID(vP, opt.channelIID)
+		err = g.nightTwoVoteValidatorByChannelIID(vP, opt.channelIID)
 	}
 	if err != nil {
 		return err
@@ -350,7 +379,7 @@ func (g *Game) NightTwoVote(vP TwoVoteProviderInterface, opt *OptionalChannelIID
 
 	votedPlayerID, isServerID := vP.GetVotedPlayerID()
 	g.RLock()
-	votedPlayer := g.Active.SearchPlayerByID(votedPlayerID, isServerID)
+	votedPlayer := g.active.SearchPlayerByID(votedPlayerID, isServerID)
 	g.RUnlock()
 	vote1, vote2 := vP.GetVote()
 	if vote1 != vote2 && (vote2 == EmptyVoteStr || vote1 == EmptyVoteStr) {
@@ -369,18 +398,18 @@ func (g *Game) NightTwoVote(vP TwoVoteProviderInterface, opt *OptionalChannelIID
 	return nil
 }
 
-// DayVote opt is OptionalChannelIID optional field Mechanism.
+// dayVote opt is OptionalChannelIID optional field Mechanism.
 //
 // If you not need it, pass nil to the field.
 // If yes, use NewOptionalChannelIID
 //
 // Immediately puts all the right votes and changes the value of the fields if no error occurred.
-func (g *Game) DayVote(vP VoteProviderInterface, opt *OptionalChannelIID) error {
+func (g *Game) dayVote(vP NightVoteProviderInterface, opt *OptionalChannelIID) error {
 	var err error
 	if opt == nil {
-		err = g.DayVoteValidator(vP)
+		err = g.dayVoteValidator(vP)
 	} else {
-		err = g.DayVoteValidatorByChannelIID(vP, opt.channelIID)
+		err = g.dayVoteValidatorByChannelIID(vP, opt.channelIID)
 	}
 	if err != nil {
 		return err
@@ -388,7 +417,7 @@ func (g *Game) DayVote(vP VoteProviderInterface, opt *OptionalChannelIID) error 
 
 	votedPlayerID, isServerID := vP.GetVotedPlayerID()
 	g.RLock()
-	votedPlayer := g.Active.SearchPlayerByID(votedPlayerID, isServerID)
+	votedPlayer := g.active.SearchPlayerByID(votedPlayerID, isServerID)
 	g.RUnlock()
 	vote := vP.GetVote()
 	if vote == EmptyVoteStr {
@@ -396,5 +425,28 @@ func (g *Game) DayVote(vP VoteProviderInterface, opt *OptionalChannelIID) error 
 	}
 	// validated Before
 	votedPlayer.DayVote, _ = strconv.Atoi(vote)
+	return nil
+}
+
+// Functions of game to set voting.
+// You can use only this functions
+
+func (g *Game) SetNightVote(nightVote NightVoteProviderInterface, ch *OptionalChannelIID) error {
+	if err := g.basicVoteValidator(nightVote); err != nil {
+		return err
+	}
+	if g.state != NightState {
+		return IncorrectVoteTime
+	}
+	var err error
+	if ch != nil {
+		err = g.nightVoteValidatorByChannelIID(nightVote, ch.channelIID)
+	} else {
+		err = g.nightVoteValidator(nightVote, nil)
+	}
+	if err != nil {
+		return err
+	}
+	g.nightOneVote(nightVote)
 	return nil
 }

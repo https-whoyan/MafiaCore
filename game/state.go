@@ -13,11 +13,11 @@ const (
 )
 
 func (g *Game) IsFinished() bool {
-	return g.State == FinishState
+	return g.state == FinishState
 }
 
 func (g *Game) IsRunning() bool {
-	return g.State == NightState || g.State == DayState
+	return g.state == NightState || g.state == DayState
 }
 
 // _________________
@@ -27,7 +27,7 @@ func (g *Game) IsRunning() bool {
 func (g *Game) getNextState() State {
 	g.RLock()
 	defer g.RUnlock()
-	switch g.State {
+	switch g.state {
 	case NonDefinedState:
 		return RegisterState
 	case RegisterState:
@@ -44,15 +44,15 @@ func (g *Game) getNextState() State {
 		panic("unknown game state")
 	}
 
-	return g.PreviousState
+	return g.previousState
 }
 
 func (g *Game) SetState(state State) {
 	g.Lock()
 	defer g.Unlock()
-	currGState := g.State
-	g.PreviousState = currGState
-	g.State = state
+	currGState := g.state
+	g.previousState = currGState
+	g.state = state
 }
 
 func (g *Game) SwitchState() {

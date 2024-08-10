@@ -23,9 +23,9 @@ func (g *Game) Day() DayLog {
 
 		g.RLock()
 		deadline := CalculateDayDeadline(
-			g.NightCounter, g.Dead.Len(), g.RolesConfig.PlayersCount)
+			g.nightCounter, g.dead.Len(), g.rolesConfig.PlayersCount)
 		g.RUnlock()
-		safeSendErrSignal(g.infoSender, g.Messenger.Day.SendMessageAboutNewDay(g.MainChannel, deadline))
+		safeSendErrSignal(g.infoSender, g.messenger.Day.SendMessageAboutNewDay(g.mainChannel, deadline))
 
 		return g.StartDayVoting(deadline)
 	}
@@ -38,10 +38,10 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 	g.timer(deadline)
 
 	var kickedPlayerID = -1
-	var breakDownDayPlayersCount = int(math.Ceil(float64(DayPersentageToNextStage*g.Active.Len()) / 100.0))
+	var breakDownDayPlayersCount = int(math.Ceil(float64(DayPersentageToNextStage*g.active.Len()) / 100.0))
 
-	acceptTheVote := func(voteP VoteProviderInterface) (kickedID *int, isEndVoting bool) {
-		var votedPlayerID = int(g.Active.SearchPlayerByID(voteP.GetVotedPlayerID()).ID)
+	acceptTheVote := func(voteP NightVoteProviderInterface) (kickedID *int, isEndVoting bool) {
+		var votedPlayerID = int(g.active.SearchPlayerByID(voteP.GetVotedPlayerID()).ID)
 		var vote, _ = strconv.Atoi(voteP.GetVote())
 
 		if prevVote, isContains := votesMp[votedPlayerID]; isContains {
@@ -56,7 +56,7 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 			return kickedID, true
 		}
 		// Case, when all players leave his vote
-		if len(votesMp) == g.Active.Len() {
+		if len(votesMp) == g.active.Len() {
 			// Calculate pVote, which have maximum occurrences
 			var (
 				mxOccurrence = 0
@@ -83,7 +83,7 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 	}
 
 	dayLog := DayLog{
-		DayNumber: g.NightCounter,
+		DayNumber: g.nightCounter,
 		IsSkip:    false,
 	}
 
@@ -105,8 +105,8 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 		case <-g.timerDone:
 			isNeedToContinue = false
 			break
-		case voteP := <-g.VoteChan:
-			err := g.DayVote(voteP, nil)
+		case voteP := <-g.dayVoteChan:
+			err := g.dayVote(voteP, nil)
 			if err != nil {
 				g.infoSender <- newErrSignal(err)
 				break
@@ -154,12 +154,12 @@ func CalculateDayDeadline(nighCounter int, deadCount int, totalPlayers int) time
 
 func (g *Game) AffectDay(l DayLog) (isFool bool) {
 	if l.IsSkip {
-		safeSendErrSignal(g.infoSender, g.Messenger.Day.SendMessageThatDayIsSkipped(g.MainChannel))
+		safeSendErrSignal(g.infoSender, g.messenger.Day.SendMessageThatDayIsSkipped(g.mainChannel))
 		return
 	}
-	kickedPlayer := (*g.Active)[player.IDType(*l.Kicked)]
-	safeSendErrSignal(g.infoSender, g.Messenger.Day.SendMessageAboutKickedPlayer(g.MainChannel, kickedPlayer))
+	kickedPlayer := (*g.active)[player.IDType(*l.Kicked)]
+	safeSendErrSignal(g.infoSender, g.messenger.Day.SendMessageAboutKickedPlayer(g.mainChannel, kickedPlayer))
 
-	g.Active.ToDead(kickedPlayer.ID, player.KilledByDayVoting, g.NightCounter, g.Dead)
+	g.active.ToDead(kickedPlayer.ID, player.KilledByDayVoting, g.nightCounter, g.dead)
 	return
 }

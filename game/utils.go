@@ -9,7 +9,7 @@ import (
 func (g *Game) ClearDayVotes() {
 	g.Lock()
 	defer g.Unlock()
-	allPlayers := g.Active
+	allPlayers := g.active
 
 	for _, activePlayer := range *allPlayers {
 		activePlayer.DayVote = EmptyVoteInt
@@ -19,7 +19,7 @@ func (g *Game) ClearDayVotes() {
 func (g *Game) ResetAllInteractionsStatuses() {
 	g.Lock()
 	defer g.Unlock()
-	allPlayers := g.Active
+	allPlayers := g.active
 
 	for _, activePlayer := range *allPlayers {
 		activePlayer.InteractionStatus = player.Passed
@@ -31,7 +31,7 @@ func (g *Game) ResetAllInteractionsStatuses() {
 func (g *Game) UnderstandWinnerTeam() *roles.Team {
 	g.RLock()
 	defer g.RUnlock()
-	allPlayers := g.Active
+	allPlayers := g.active
 
 	// int represent count of players by their team
 	teamsMp := make(map[roles.Team]int)

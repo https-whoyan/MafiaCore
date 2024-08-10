@@ -11,10 +11,10 @@ import (
 // logs are automatically loaded and saved to the implementation for
 // saving in the run and finish methods.
 type Logger interface {
-	InitNewGame(g *Game) error
-	SaveNightLog(g *Game, log NightLog) error
-	SaveDayLog(g *Game, log DayLog) error
-	SaveFinishLog(g *Game, log FinishLog) error
+	InitNewGame(g DeepCloneGame) error
+	SaveNightLog(g DeepCloneGame, log NightLog) error
+	SaveDayLog(g DeepCloneGame, log DayLog) error
+	SaveFinishLog(g DeepCloneGame, log FinishLog) error
 }
 
 // ____________
@@ -41,19 +41,19 @@ func (g *Game) NewNightLog() NightLog {
 	case <-g.ctx.Done():
 		return NightLog{}
 	default:
-		if g.State != NightState {
+		if g.state != NightState {
 			panic("Inappropriate use not after overnight")
 		}
-		if g.NightVoting != nil {
+		if g.nightVoting != nil {
 			panic("the function is called during the night, not after it!")
 		}
 
 		g.RLock()
 		defer g.RUnlock()
 
-		nightNumber := g.NightCounter
+		nightNumber := g.nightCounter
 		nightVotes := make(map[int][]int)
-		for _, p := range *g.Active {
+		for _, p := range *g.active {
 			if p.Role.NightVoteOrder == -1 {
 				continue
 			}
@@ -68,7 +68,7 @@ func (g *Game) NewNightLog() NightLog {
 			nightVotes[int(p.ID)] = votes
 		}
 		var dead []int
-		for _, p := range *g.Active {
+		for _, p := range *g.active {
 			if p.LifeStatus == player.Dead {
 				dead = append(dead, int(p.ID))
 			}
@@ -108,7 +108,7 @@ func (g *Game) NewFinishLog(winnerTeam *roles.Team, isFool bool) FinishLog {
 		defer g.RUnlock()
 
 		containsFool := false
-		for _, players := range *g.Dead {
+		for _, players := range *g.dead {
 			for _, p := range players {
 				if p.Role == roles.Fool {
 					containsFool = true
@@ -123,7 +123,7 @@ func (g *Game) NewFinishLog(winnerTeam *roles.Team, isFool bool) FinishLog {
 		return FinishLog{
 			WinnerTeam:  nil,
 			IsFool:      isFool,
-			TotalNights: g.NightCounter,
+			TotalNights: g.nightCounter,
 		}
 	}
 
@@ -135,6 +135,6 @@ func (g *Game) NewFinishLog(winnerTeam *roles.Team, isFool bool) FinishLog {
 	return FinishLog{
 		WinnerTeam:  winnerTeam,
 		IsFool:      false,
-		TotalNights: g.NightCounter,
+		TotalNights: g.nightCounter,
 	}
 }
