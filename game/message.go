@@ -213,7 +213,7 @@ func (m afterNightMessenger) SendAfterNightMessage(l NightLog, w io.Writer) erro
 	var mentions []string
 	idsSet := cnvPack.SliceToSet(l.Dead)
 	for _, p := range *m.g.active {
-		if idsSet[int(p.ID)] {
+		if idsSet[p.ID] {
 			mentions = append(mentions, f.Mention(p.ServerNick))
 		}
 	}
@@ -242,7 +242,7 @@ func (m dayMessenger) SendMessageAboutNewDay(w io.Writer, deadline time.Duration
 	message += f.LineSplitter()
 	message += f.LineSplitter()
 
-	message += f.Bold("Skip voting will be, if ") + f.Block(strconv.Itoa(DayPersentageToNextStage)+"%") +
+	message += f.Bold("Skip voting will be, if ") + f.Block(strconv.Itoa(DayPercentageToNextStage)+"%") +
 		" of player leave vote to skip."
 	return m.sendMessage(message, w)
 }

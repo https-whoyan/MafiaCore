@@ -111,8 +111,8 @@ func (g *Game) detectiveInteraction(detective *player.Player) *InteractionMessag
 	}
 
 	f := g.messenger.f
-	checkedPlayer1 := g.active.SearchPlayerByGameID(strconv.Itoa(checkedID1))
-	checkedPlayer2 := g.active.SearchPlayerByGameID(strconv.Itoa(checkedID2))
+	checkedPlayer1 := g.active.SearchPlayerByGameID(strconv.Itoa(int(checkedID1)))
+	checkedPlayer2 := g.active.SearchPlayerByGameID(strconv.Itoa(int(checkedID2)))
 
 	isEqualsTeams := checkedPlayer1.Role.Team == checkedPlayer2.Role.Team
 

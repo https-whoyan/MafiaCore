@@ -3,14 +3,13 @@ package game
 import (
 	"log"
 	"math"
-	"strconv"
 	"time"
 
 	"github.com/https-whoyan/MafiaCore/player"
 )
 
 const (
-	DayPersentageToNextStage = 50
+	DayPercentageToNextStage = 50
 )
 
 func (g *Game) Day() DayLog {
@@ -32,17 +31,26 @@ func (g *Game) Day() DayLog {
 }
 
 func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
-	votesMp := make(map[int]int)
-	occurrencesMp := make(map[int]int)
+	votesMp := make(map[player.IDType]player.IDType)
+	occurrencesMp := make(map[player.IDType]int)
 
 	g.timer(deadline)
 
-	var kickedPlayerID = -1
-	var breakDownDayPlayersCount = int(math.Ceil(float64(DayPersentageToNextStage*g.active.Len()) / 100.0))
+	var kickedPlayerID player.IDType = -1
+	var breakDownDayPlayersCount = int(math.Ceil(float64(DayPercentageToNextStage*g.active.Len()) / 100.0))
 
-	acceptTheVote := func(voteP NightVoteProviderInterface) (kickedID *int, isEndVoting bool) {
-		var votedPlayerID = int(g.active.SearchPlayerByID(voteP.GetVotedPlayerID()).ID)
-		var vote, _ = strconv.Atoi(voteP.GetVote())
+	acceptTheVote := func(voteP DayVoteProviderInterface) (kickedID *player.IDType, isEndVoting bool) {
+		var (
+			voter, toVoter, isEmpty = g.oneVoteHelper(voteP)
+			votedPlayerID           = voter.ID
+			vote                    player.IDType
+		)
+
+		if isEmpty {
+			vote = -1
+		} else {
+			vote = toVoter.ID
+		}
 
 		if prevVote, isContains := votesMp[votedPlayerID]; isContains {
 			occurrencesMp[prevVote]--
@@ -59,8 +67,8 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 		if len(votesMp) == g.active.Len() {
 			// Calculate pVote, which have maximum occurrences
 			var (
-				mxOccurrence = 0
-				mxVote       = 0
+				mxOccurrence               = 0
+				mxVote       player.IDType = 0
 			)
 
 			for pVote, occurrence := range occurrencesMp {
@@ -87,7 +95,7 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 		IsSkip:    false,
 	}
 
-	standDayLog := func(kickedID *int) {
+	standDayLog := func(kickedID *player.IDType) {
 		dayLog.Kicked = kickedID
 		dayLog.DayVotes = votesMp
 		dayLog.IsSkip = false
@@ -106,11 +114,6 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 			isNeedToContinue = false
 			break
 		case voteP := <-g.dayVoteChan:
-			err := g.dayVote(voteP, nil)
-			if err != nil {
-				g.infoSender <- newErrSignal(err)
-				break
-			}
 			maybeKickedID, isEnd := acceptTheVote(voteP)
 			log.Println(maybeKickedID, isEnd)
 			if isEnd {
@@ -157,7 +160,7 @@ func (g *Game) AffectDay(l DayLog) (isFool bool) {
 		safeSendErrSignal(g.infoSender, g.messenger.Day.SendMessageThatDayIsSkipped(g.mainChannel))
 		return
 	}
-	kickedPlayer := (*g.active)[player.IDType(*l.Kicked)]
+	kickedPlayer := (*g.active)[*l.Kicked]
 	safeSendErrSignal(g.infoSender, g.messenger.Day.SendMessageAboutKickedPlayer(g.mainChannel, kickedPlayer))
 
 	g.active.ToDead(kickedPlayer.ID, player.KilledByDayVoting, g.nightCounter, g.dead)

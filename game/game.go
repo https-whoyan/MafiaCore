@@ -99,6 +99,7 @@ type Game struct {
 	dayLogs   []DayLog
 
 	voteAccepted chan struct{}
+	dayVoteChan  chan DayVoteProviderInterface
 	// Can the player choose himself
 	voteForYourself bool
 	// votePing presents a delay number for voting for the same player again.
@@ -136,6 +137,7 @@ func GetNewGame(guildID string, opts ...GameOption) *Game {
 		voteAccepted: make(chan struct{}),
 		timerDone:    make(chan struct{}),
 		timerStop:    make(chan struct{}),
+		dayVoteChan:  make(chan DayVoteProviderInterface),
 		// Slices.
 		startPlayers: &start,
 		active:       &active,
@@ -146,6 +148,7 @@ func GetNewGame(guildID string, opts ...GameOption) *Game {
 		// Create a map
 		roleChannels: make(map[*rolesPack.Role]channelPack.RoleChannel),
 		votePing:     1,
+		infoSender:   make(chan<- Signal),
 		ctx:          context.Background(),
 	}
 	// Set options
@@ -371,12 +374,11 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 		return errors.New("invalid rename mode")
 	}
 	if g.logger != nil {
-		g.RUnlock()
-		g.Lock()
-		deepClone := g.GetDeepClone()
-		err = deepClone.Logger.InitNewGame(deepClone)
-		g.Unlock()
-		g.RLock()
+		deepClone, deepCloneErr := g.GetDeepClone()
+		if deepCloneErr != nil {
+			return deepCloneErr
+		}
+		err = g.logger.InitNewGame(deepClone)
 		return err
 	}
 
@@ -400,13 +402,13 @@ var (
 Is used to start the game.
 
 Runs the run method in its goroutine.
-Used after g.Init()
+Used after Init()
 
 Also call deferred finish() (or FinishAnyway(), if game was stopped by context)
 
 It is recommended to use context.Background()
 
-Return receive chan of Signal type, that informed you Signal s
+Return receive chan of Signal type, that informed you about Signal's
 */
 func (g *Game) Run(ctx context.Context) <-chan Signal {
 	ch := make(chan Signal)
@@ -430,28 +432,25 @@ func (g *Game) Run(ctx context.Context) <-chan Signal {
 
 			var isStoppedByCtx bool
 
-			wg := sync.WaitGroup{}
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				defer func() {
-					if r := recover(); r != nil {
-						isStoppedByCtx = true
-						g.infoSender <- newErrSignal(
-							fmt.Errorf("panic recoved, err %v", err),
-						)
-						return
-					}
-				}()
-				isStoppedByCtx = g.run()
+			// Tracing
+
+			defer func() {
+				if r := recover(); r != nil {
+					isStoppedByCtx = true
+					g.infoSender <- newErrSignal(
+						fmt.Errorf("panic recoved, err %v", err),
+					)
+					g.FinishAnyway()
+				}
 			}()
-			wg.Wait()
+
+			isStoppedByCtx, finishLog := g.run()
 
 			switch isStoppedByCtx {
 			case true:
 				g.FinishAnyway()
 			case false:
-				g.finish()
+				g.FinishByFinishLog(*finishLog)
 			}
 		}
 	}()
@@ -459,16 +458,17 @@ func (g *Game) Run(ctx context.Context) <-chan Signal {
 	return ch
 }
 
-func (g *Game) run() (isStoppedByCtx bool) {
+func (g *Game) run() (isStoppedByCtx bool, finishLog *FinishLog) {
 	// FinishState will be set when the winner is already clear.
 	// This will be determined after the night and after the day's voting.
-	var finishLog FinishLog
 
 	for g.state != FinishState {
 		isNeedToContinue := true
 		select {
 		case <-g.ctx.Done():
 			isStoppedByCtx = true
+			isNeedToContinue = false
+			return true, nil
 		default:
 			g.Lock()
 			g.nightCounter++
@@ -480,8 +480,9 @@ func (g *Game) run() (isStoppedByCtx bool) {
 			g.nightLogs = append(g.nightLogs, nightLog)
 			g.AffectNight(nightLog)
 			if g.logger != nil {
-				deepClone := g.GetDeepClone()
-				err := deepClone.Logger.SaveNightLog(deepClone, nightLog)
+				deepClone, deepCloneErr := g.GetDeepClone()
+				safeSendErrSignal(g.infoSender, deepCloneErr)
+				err := g.logger.SaveNightLog(deepClone, nightLog)
 				safeSendErrSignal(g.infoSender, err)
 			}
 
@@ -489,7 +490,8 @@ func (g *Game) run() (isStoppedByCtx bool) {
 
 			winnerTeam := g.UnderstandWinnerTeam()
 			if winnerTeam != nil {
-				finishLog = g.NewFinishLog(winnerTeam, true)
+				finishLogValue := g.NewFinishLog(winnerTeam, false)
+				finishLog = &finishLogValue
 				isNeedToContinue = false
 				break
 			}
@@ -500,8 +502,9 @@ func (g *Game) run() (isStoppedByCtx bool) {
 			g.dayLogs = append(g.dayLogs, dayLog)
 			g.AffectDay(dayLog)
 			if g.logger != nil {
-				deepClone := g.GetDeepClone()
-				err := deepClone.Logger.SaveDayLog(deepClone, dayLog)
+				deepClone, deepCloneErr := g.GetDeepClone()
+				safeSendErrSignal(g.infoSender, deepCloneErr)
+				err := g.logger.SaveDayLog(deepClone, dayLog)
 				safeSendErrSignal(g.infoSender, err)
 			}
 
@@ -509,12 +512,14 @@ func (g *Game) run() (isStoppedByCtx bool) {
 			winnerTeam = g.UnderstandWinnerTeam()
 			fool := (*g.dead.ConvertToPlayers().SearchAllPlayersWithRole(rolesPack.Fool))[0]
 
-			if dayLog.Kicked != nil && *dayLog.Kicked == int(fool.ID) {
-				finishLog = g.NewFinishLog(nil, true)
+			if dayLog.Kicked != nil && *dayLog.Kicked == fool.ID {
+				finishLogValue := g.NewFinishLog(nil, true)
+				finishLog = &finishLogValue
 				isNeedToContinue = false
 				break
 			} else if winnerTeam != nil {
-				finishLog = g.NewFinishLog(winnerTeam, false)
+				finishLogValue := g.NewFinishLog(winnerTeam, false)
+				finishLog = &finishLogValue
 				isNeedToContinue = false
 				break
 			}
@@ -526,7 +531,6 @@ func (g *Game) run() (isStoppedByCtx bool) {
 		}
 	}
 	g.ClearDayVotes()
-	g.FinishByFinishLog(finishLog)
 	return
 }
 
@@ -543,11 +547,19 @@ var (
 )
 
 func (g *Game) FinishByFinishLog(l FinishLog) {
+	err := g.messenger.Finish.SendMessagesAboutEndOfGame(l, g.mainChannel)
+	if err != nil {
+		g.infoSender <- newErrSignal(err)
+	}
 	finishingFuncOnce.Do(func() {
-		err := g.messenger.Finish.SendMessagesAboutEndOfGame(l, g.mainChannel)
-		safeSendErrSignal(g.infoSender, err)
 		g.SetState(FinishState)
 		g.infoSender <- g.newSwitchStateSignal()
+		if g.logger != nil {
+			deepClone, deepCloneErr := g.GetDeepClone()
+			safeSendErrSignal(g.infoSender, deepCloneErr)
+			loggerErr := g.logger.SaveFinishLog(deepClone, l)
+			safeSendErrSignal(g.infoSender, loggerErr)
+		}
 		g.replaceCtx()
 		g.finish()
 	})
@@ -567,9 +579,6 @@ func (g *Game) replaceCtx() {
 // FinishAnyway is used to end the running game anyway.
 func (g *Game) FinishAnyway() {
 	finishingFuncOnce.Do(func() {
-		if !g.IsRunning() {
-			return
-		}
 		content := "The game was suspended."
 		_, err := g.mainChannel.Write([]byte(g.messenger.Finish.f.Bold(content)))
 		safeSendErrSignal(g.infoSender, err)
@@ -583,10 +592,6 @@ func (g *Game) FinishAnyway() {
 func (g *Game) finish() {
 	finishOnce.Do(func() {
 		g.endTime = time.Now()
-		if !g.IsFinished() {
-			sendFatalSignal(g.infoSender, errors.New("game is not finished"))
-			return
-		}
 
 		// Delete from channels
 		for _, player := range *g.active {

@@ -3,7 +3,8 @@ package game
 type State int8
 
 const (
-	NonDefinedState State = iota
+	_ State = iota
+	NonDefinedState
 	RegisterState
 	InitState
 	StartingState

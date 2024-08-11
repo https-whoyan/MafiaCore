@@ -1,6 +1,6 @@
 package time
 
-// Time and deadline constants are described below
+// Time and deadline constants in seconds
 const (
 	VotingDeadline = 40
 
@@ -13,6 +13,7 @@ const (
 )
 
 // Everything below is automatically calculated
+
 const (
 	LastWordDeadlineMinutes = LastWordDeadline / 60
 )
