@@ -1,6 +1,7 @@
 package game
 
 import (
+	"context"
 	"strconv"
 	"sync"
 
@@ -66,37 +67,45 @@ type voteCfg struct {
 	votes []player.IDType
 }
 
-func takeANight(g *game.Game, c votesCfg) {
-	ch := make(chan game.Signal)
+func takeANight(g *game.Game, c votesCfg) error {
+	ch := make(<-chan game.Signal)
 	wg := sync.WaitGroup{}
 	wg.Add(2)
+	var (
+		err      error
+		standErr = func(fnErr error) {
+			if err == nil && fnErr != nil {
+				err = fnErr
+			}
+		}
+	)
 	go func() {
 		defer wg.Done()
-		g.Night()
-		close(ch)
+		ch = g.Run(context.Background())
 	}()
 	go func() {
 		defer wg.Done()
-		select {
-		case <-ch:
-			return
-		default:
-			for s := range ch {
-				votedRole := signalHandler(s)
-				if votedRole == nil {
-					continue
-				}
-				if votedRole.IsTwoVotes {
-					vP := c[votedRole].toTwoVotePr(g.active)
-					g.TwoVoteChan <- vP
-					continue
-				}
-				vP := c[votedRole].toVotePr(g.active)
-				g.VoteChan <- vP
+		active := g.GetActivePlayers()
+		for s := range ch {
+			if g.GetState() == game.DayState {
+				return
 			}
+			votedRole := signalHandler(s)
+			if votedRole == nil {
+				continue
+			}
+			if votedRole.IsTwoVotes {
+				vP := c[votedRole].toTwoVotePr(&active)
+
+				standErr(g.SetNightTwoVote(vP))
+				continue
+			}
+			vP := c[votedRole].toVotePr(&active)
+			standErr(g.SetNightVote(vP))
 		}
 	}()
 	wg.Wait()
+	return err
 }
 
 func (v voteCfg) toTwoVotePr(players *player.Players) *game.NightTwoVotesProvider {
@@ -106,10 +115,11 @@ func (v voteCfg) toTwoVotePr(players *player.Players) *game.NightTwoVotesProvide
 		votedPlayer = p
 	}
 	return &game.NightTwoVotesProvider{
-		VotedPlayerID:  strconv.Itoa(int(votedPlayer.ID)),
-		Vote1:          strconv.Itoa(int(v.votes[0])),
-		Vote2:          strconv.Itoa(int(v.votes[1])),
-		IsServerUserID: false,
+		VotedPlayerID:          strconv.Itoa(int(votedPlayer.ID)),
+		Vote1:                  strconv.Itoa(int(v.votes[0])),
+		Vote2:                  strconv.Itoa(int(v.votes[1])),
+		IsServerUserIDByPlayer: false,
+		IsServerUserIDByVote:   false,
 	}
 }
 
@@ -120,18 +130,11 @@ func (v voteCfg) toVotePr(players *player.Players) *game.OneVoteProvider {
 		votedPlayer = p
 	}
 	return &game.OneVoteProvider{
-		VotedPlayerID:  strconv.Itoa(int(votedPlayer.ID)),
-		Vote:           strconv.Itoa(int(v.votes[0])),
-		IsServerUserID: false,
+		VotedPlayerID:          strconv.Itoa(int(votedPlayer.ID)),
+		Vote:                   strconv.Itoa(int(v.votes[0])),
+		IsServerUserIDByPlayer: false,
+		IsServerUserIDByVote:   false,
 	}
 }
 
 type votesCfg map[*roles.Role]voteCfg
-
-func convertIntMpToIDTypeMp(m map[int]bool) map[player.IDType]bool {
-	ans := make(map[player.IDType]bool)
-	for k, v := range m {
-		ans[player.IDType(k)] = v
-	}
-	return ans
-}

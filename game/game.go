@@ -552,6 +552,7 @@ func (g *Game) FinishByFinishLog(l FinishLog) {
 		g.infoSender <- newErrSignal(err)
 	}
 	finishingFuncOnce.Do(func() {
+		g.endTime = time.Now()
 		g.SetState(FinishState)
 		g.infoSender <- g.newSwitchStateSignal()
 		if g.logger != nil {
@@ -579,6 +580,7 @@ func (g *Game) replaceCtx() {
 // FinishAnyway is used to end the running game anyway.
 func (g *Game) FinishAnyway() {
 	finishingFuncOnce.Do(func() {
+		g.endTime = time.Now()
 		content := "The game was suspended."
 		_, err := g.mainChannel.Write([]byte(g.messenger.Finish.f.Bold(content)))
 		safeSendErrSignal(g.infoSender, err)
@@ -591,8 +593,6 @@ func (g *Game) FinishAnyway() {
 
 func (g *Game) finish() {
 	finishOnce.Do(func() {
-		g.endTime = time.Now()
-
 		// Delete from channels
 		for _, player := range *g.active {
 			if player.Role.NightVoteOrder == -1 {

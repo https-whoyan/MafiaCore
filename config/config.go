@@ -16,14 +16,14 @@ import (
 // Represent Config structs
 
 type RoleConfig struct {
-	Role  *roles.Role `json:"role" bson:"role"`
-	Count int         `json:"count" bson:"count"`
+	Role  *roles.Role `json:"role" bson:"role" yaml:"role" db:"role" xml:"role" xlsx:"role"`
+	Count int         `json:"count" bson:"count" yaml:"count" db:"count" xml:"count" xlsx:"count"`
 }
 
 type RolesConfig struct {
-	PlayersCount int `json:"playersCount" bson:"playersCount"`
+	PlayersCount int `json:"playersCount" bson:"playersCount" yaml:"playersCount" db:"players_count" xml:"playersCount" xlsx:"playersCount"`
 	// RolesMp present RoleConfig by RoleName.
-	RolesMp map[string]*RoleConfig `json:"rolesMp" bson:"rolesMp"`
+	RolesMp map[string]*RoleConfig `json:"rolesMp" bson:"rolesMp" yaml:"rolesMp" db:"rolesMp" xml:"rolesMp" xml:"rolesMp" xlsx:"rolesMp"`
 }
 
 type ConfigsByPlayerCount []*RolesConfig
