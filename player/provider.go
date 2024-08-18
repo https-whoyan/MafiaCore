@@ -50,7 +50,7 @@ var (
 )
 
 var (
-	InvalidID          = errors.New("invalid ")
+	InvalidID          = errors.New("invalid ID")
 	UserIsNotActive    = errors.New("user is not a active user")
 	UserIsNotDead      = errors.New("user is not a dead user")
 	UserIsNotSpectator = errors.New("user is not spectator")

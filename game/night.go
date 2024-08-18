@@ -1,6 +1,7 @@
 package game
 
 import (
+	"log"
 	"sort"
 	"time"
 
@@ -180,7 +181,7 @@ func (g *Game) RoleNightAction(votedRole *rolesPack.Role) {
 			isTimerStop = g.twoVoterRoleNightVoting(containsNotMutedPlayers, voteDeadline)
 		}
 
-		if isTimerStop {
+		if isTimerStop && containsNotMutedPlayers {
 			safeSendErrSignal(g.infoSender, g.messenger.Night.InfoThatTimerIsDone(interactionChannel))
 		}
 
@@ -199,6 +200,7 @@ func (g *Game) RoleNightAction(votedRole *rolesPack.Role) {
 		sendToOtherEmptyVotes(nonEmptyVoter)
 
 		// Case when roles need to urgent calculation
+		log.Println(votedRole.Name, votedRole.UrgentCalculation)
 		if votedRole.UrgentCalculation {
 			message := g.nightInteraction(nonEmptyVoter)
 			if message != nil {
@@ -267,6 +269,7 @@ func (g *Game) twoVoterRoleNightVoting(containsNotMutedPlayers bool, deadline ti
 
 	select {
 	case <-g.voteAccepted:
+		log.Println("two vote accepted")
 		g.timerStop <- struct{}{}
 		break
 	case <-g.timerDone:

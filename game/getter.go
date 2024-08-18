@@ -26,7 +26,10 @@ func (g *Game) GetSpectatorsOfGame() playerPack.NonPlayingPlayers {
 	return *g.spectators
 }
 
-func (g *Game) GetNightCount() int {
+func (g *Game) GetNightVoting() *rolesPack.Role {
+	return g.nightVoting
+}
+func (g *Game) GetNightsCount() int {
 	return g.nightCounter
 }
 func (g *Game) PlayersCount() int {

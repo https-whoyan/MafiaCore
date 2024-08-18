@@ -325,8 +325,8 @@ func (g *Game) nightTwoVote(vP NightTwoVoteProviderInterface) {
 	g.RUnlock()
 	if vote1 == EmptyVoteStr && vote2 == EmptyVoteStr {
 		g.Lock()
+		defer g.Unlock()
 		voter.Votes = append(voter.Votes, EmptyVoteInt, EmptyVoteInt)
-		g.Unlock()
 		return
 	}
 	g.RLock()
