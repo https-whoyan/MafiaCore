@@ -10,11 +10,12 @@ import (
 	"strings"
 	"time"
 
-	cnvPack "github.com/https-whoyan/MafiaCore/converter"
 	myFMT "github.com/https-whoyan/MafiaCore/fmt"
 	playerPack "github.com/https-whoyan/MafiaCore/player"
 	rolesPack "github.com/https-whoyan/MafiaCore/roles"
 	myTime "github.com/https-whoyan/MafiaCore/time"
+
+	"github.com/samber/lo"
 )
 
 // !!!!!!!!!!!!!!!!!!
@@ -92,7 +93,7 @@ func (m initMessenger) SendStartMessage(writer io.Writer) error {
 	message += myFMT.BoldUnderline(f, "Today, our players:") + nl
 
 	var aboutIDMessages []string
-	activePlayers := cnvPack.GetMapValues(*m.g.active)
+	activePlayers := lo.Values(*m.g.active)
 	sort.Slice(activePlayers, func(i, j int) bool {
 		return activePlayers[j].ID < activePlayers[j].ID
 	})
@@ -211,7 +212,9 @@ func (m afterNightMessenger) SendAfterNightMessage(l NightLog, w io.Writer) erro
 	message += " " + f.Block(strconv.Itoa(len(l.Dead))) +
 		f.Bold(" people")
 	var mentions []string
-	idsSet := cnvPack.SliceToSet(l.Dead)
+	lo.ToAnySlice(l.Dead)
+
+	idsSet := lo.SliceToMap(l.Dead, func(id playerPack.IDType) (playerPack.IDType, bool) { return id, true })
 	for _, p := range *m.g.active {
 		if idsSet[p.ID] {
 			mentions = append(mentions, f.Mention(p.ServerNick))
@@ -283,7 +286,7 @@ func (m finishMessenger) SendParticipantAboutMessage() string {
 	allPartitionsMp := m.g.active
 	allPartitionsMp.Append(m.g.dead.ConvertToPlayers())
 
-	allPartitionsSlice := cnvPack.GetMapValues(*allPartitionsMp)
+	allPartitionsSlice := lo.Values(*allPartitionsMp)
 
 	sort.Slice(allPartitionsSlice, func(i, j int) bool {
 		return allPartitionsSlice[i].ID < allPartitionsSlice[j].ID

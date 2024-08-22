@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/https-whoyan/MafiaCore/channel"
 	"github.com/https-whoyan/MafiaCore/config"
-	"github.com/https-whoyan/MafiaCore/converter"
 	"github.com/https-whoyan/MafiaCore/fmt"
 	"github.com/https-whoyan/MafiaCore/game"
 	"github.com/https-whoyan/MafiaCore/message"
@@ -22,7 +21,6 @@ func main() {
 		_ = channel.Channel(nil)
 		_ = &config.Configs
 		_ = fmt.FmtInterface(nil)
-		_ = converter.GetMapKeys(map[int]int{})
 		_ = message.GetStartPlayerDefinition(&player.Player{Role: roles.Mafia}, models.TestFMTInstance)
 		_ = &roles.Role{}
 		_ = time.FakeVotingMaxSeconds

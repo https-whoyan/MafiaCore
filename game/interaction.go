@@ -162,6 +162,6 @@ func (g *Game) interactionHelper(p *player.Player) (toVoted *player.Player, isEm
 		isEmpty = true
 		return
 	}
-	toVoted = (*g.active)[player.IDType(lastVote)]
+	toVoted = (*g.active)[lastVote]
 	return
 }

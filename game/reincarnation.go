@@ -3,6 +3,7 @@ package game
 import (
 	"github.com/https-whoyan/MafiaCore/player"
 	"github.com/https-whoyan/MafiaCore/roles"
+	"github.com/samber/lo"
 )
 
 // This is where all the code regarding reincarnation and role reversal is contained.
@@ -19,12 +20,13 @@ func (g *Game) reincarnation(p *player.Player) {
 func (g *Game) donReincarnation(p *player.Player) {
 	// I find out he's the only one left on the mafia team.
 	g.RLock()
-	mafiaTeamCounter := 0
-	for _, activePlayer := range *g.active {
-		if activePlayer.Role.Team == roles.MafiaTeam {
-			mafiaTeamCounter++
-		}
-	}
+
+	mafiaTeamCounter := lo.CountValues(lo.Map(
+		lo.Values(*g.active),
+		func(p *player.Player, _ int) roles.Team {
+			return p.Role.Team
+		}),
+	)[roles.MafiaTeam]
 	if mafiaTeamCounter > 1 {
 		g.RUnlock()
 		return

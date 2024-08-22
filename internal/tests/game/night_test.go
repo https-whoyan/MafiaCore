@@ -2,11 +2,11 @@ package game
 
 import (
 	"context"
+	"github.com/samber/lo"
 	"sync"
 	"testing"
 
 	"github.com/https-whoyan/MafiaCore/config"
-	"github.com/https-whoyan/MafiaCore/converter"
 	"github.com/https-whoyan/MafiaCore/game"
 	"github.com/https-whoyan/MafiaCore/player"
 	"github.com/https-whoyan/MafiaCore/roles"
@@ -141,7 +141,7 @@ func TestNightConfig7_3(t *testing.T) {
 		nightLog := g.NewNightLog()
 
 		exceptedDead := map[player.IDType]bool{}
-		actualDead := converter.SliceToSet(nightLog.Dead)
+		actualDead := lo.SliceToMap(nightLog.Dead, func(id player.IDType) (player.IDType, bool) { return id, true })
 
 		assert.Equal(t, exceptedDead, actualDead)
 	})
@@ -176,7 +176,7 @@ func TestNightConfig7_3(t *testing.T) {
 		nightLog := g.NewNightLog()
 
 		exceptedDead := map[player.IDType]bool{}
-		actualDead := converter.SliceToSet(nightLog.Dead)
+		actualDead := lo.SliceToMap(nightLog.Dead, func(id player.IDType) (player.IDType, bool) { return id, true })
 
 		assert.Equal(t, exceptedDead, actualDead)
 	})
@@ -212,7 +212,7 @@ func TestNightConfig7_3(t *testing.T) {
 		nightLog := g.NewNightLog()
 
 		exceptedDead := map[player.IDType]bool{}
-		actualDead := converter.SliceToSet(nightLog.Dead)
+		actualDead := lo.SliceToMap(nightLog.Dead, func(id player.IDType) (player.IDType, bool) { return id, true })
 
 		assert.Equal(t, exceptedDead, actualDead)
 	})
@@ -251,7 +251,7 @@ func TestNightConfig7_3(t *testing.T) {
 		exceptedDead := map[player.IDType]bool{
 			detectiveID: true,
 		}
-		actualDead := converter.SliceToSet(nightLog.Dead)
+		actualDead := lo.SliceToMap(nightLog.Dead, func(id player.IDType) (player.IDType, bool) { return id, true })
 
 		assert.Equal(t, exceptedDead, actualDead)
 	})
@@ -290,7 +290,7 @@ func TestNightConfig7_3(t *testing.T) {
 		exceptedDead := map[player.IDType]bool{
 			doctorID: true,
 		}
-		actualDead := converter.SliceToSet(nightLog.Dead)
+		actualDead := lo.SliceToMap(nightLog.Dead, func(id player.IDType) (player.IDType, bool) { return id, true })
 
 		assert.Equal(t, exceptedDead, actualDead)
 	})
@@ -387,7 +387,7 @@ func TestNightConfig10_2(t *testing.T) {
 		nightLog := g.NewNightLog()
 
 		exceptedDead := map[player.IDType]bool{}
-		actualDead := converter.SliceToSet(nightLog.Dead)
+		actualDead := lo.SliceToMap(nightLog.Dead, func(id player.IDType) (player.IDType, bool) { return id, true })
 
 		assert.Equal(t, exceptedDead, actualDead)
 	})
@@ -433,7 +433,7 @@ func TestNightConfig10_2(t *testing.T) {
 		nightLog := g.NewNightLog()
 
 		exceptedDead := map[player.IDType]bool{}
-		actualDead := converter.SliceToSet(nightLog.Dead)
+		actualDead := lo.SliceToMap(nightLog.Dead, func(id player.IDType) (player.IDType, bool) { return id, true })
 
 		assert.Equal(t, exceptedDead, actualDead)
 	})
@@ -488,7 +488,7 @@ func TestNightConfig10_2(t *testing.T) {
 		exceptedDead := map[player.IDType]bool{
 			randomPeacefulID2: true,
 		}
-		actualDead := converter.SliceToSet(nightLog.Dead)
+		actualDead := lo.SliceToMap(nightLog.Dead, func(id player.IDType) (player.IDType, bool) { return id, true })
 
 		assert.Equal(t, exceptedDead, actualDead)
 	})
@@ -548,7 +548,7 @@ func TestNightConfig10_2(t *testing.T) {
 			randomPeacefulID2: true,
 			randomPeacefulID3: true,
 		}
-		actualDead := converter.SliceToSet(nightLog.Dead)
+		actualDead := lo.SliceToMap(nightLog.Dead, func(id player.IDType) (player.IDType, bool) { return id, true })
 
 		assert.Equal(t, exceptedDead, actualDead)
 	})
@@ -599,7 +599,7 @@ func TestNightConfig10_2(t *testing.T) {
 		nightLog := g.NewNightLog()
 
 		exceptedDead := map[player.IDType]bool{}
-		actualDead := converter.SliceToSet(nightLog.Dead)
+		actualDead := lo.SliceToMap(nightLog.Dead, func(id player.IDType) (player.IDType, bool) { return id, true })
 
 		assert.Equal(t, exceptedDead, actualDead)
 	})
@@ -649,7 +649,7 @@ func TestNightConfig10_2(t *testing.T) {
 		nightLog := g.NewNightLog()
 
 		exceptedDead := map[player.IDType]bool{}
-		actualDead := converter.SliceToSet(nightLog.Dead)
+		actualDead := lo.SliceToMap(nightLog.Dead, func(id player.IDType) (player.IDType, bool) { return id, true })
 
 		assert.Equal(t, exceptedDead, actualDead)
 	})
@@ -701,7 +701,7 @@ func TestNightConfig10_2(t *testing.T) {
 		nightLog := g.NewNightLog()
 
 		exceptedDead := map[player.IDType]bool{}
-		actualDead := converter.SliceToSet(nightLog.Dead)
+		actualDead := lo.SliceToMap(nightLog.Dead, func(id player.IDType) (player.IDType, bool) { return id, true })
 
 		assert.Equal(t, exceptedDead, actualDead)
 	})
@@ -755,7 +755,7 @@ func TestNightConfig10_2(t *testing.T) {
 		exceptedDead := map[player.IDType]bool{
 			doctorID: true,
 		}
-		actualDead := converter.SliceToSet(nightLog.Dead)
+		actualDead := lo.SliceToMap(nightLog.Dead, func(id player.IDType) (player.IDType, bool) { return id, true })
 
 		assert.Equal(t, exceptedDead, actualDead)
 	})
@@ -808,7 +808,7 @@ func TestNightConfig10_2(t *testing.T) {
 		exceptedDead := map[player.IDType]bool{
 			citizenID: true,
 		}
-		actualDead := converter.SliceToSet(nightLog.Dead)
+		actualDead := lo.SliceToMap(nightLog.Dead, func(id player.IDType) (player.IDType, bool) { return id, true })
 
 		assert.Equal(t, exceptedDead, actualDead)
 	})
@@ -864,7 +864,7 @@ func TestNightConfig10_2(t *testing.T) {
 			rndPeacefulID1: true,
 			citizenID:      true,
 		}
-		actualDead := converter.SliceToSet(nightLog.Dead)
+		actualDead := lo.SliceToMap(nightLog.Dead, func(id player.IDType) (player.IDType, bool) { return id, true })
 
 		assert.Equal(t, exceptedDead, actualDead)
 	})
@@ -923,7 +923,7 @@ func TestNightConfig10_2(t *testing.T) {
 			rndPeacefulID2: true,
 			citizenID:      true,
 		}
-		actualDead := converter.SliceToSet(nightLog.Dead)
+		actualDead := lo.SliceToMap(nightLog.Dead, func(id player.IDType) (player.IDType, bool) { return id, true })
 
 		assert.Equal(t, exceptedDead, actualDead)
 	})

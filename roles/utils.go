@@ -1,10 +1,9 @@
 package roles
 
 import (
+	"github.com/samber/lo"
 	"slices"
 	"sort"
-
-	"github.com/https-whoyan/MafiaCore/converter"
 )
 
 // Utils.
@@ -14,13 +13,17 @@ import (
 // __________________
 
 func GetAllNightInteractionRolesNames() []string {
-	var roles []string
-	for name, role := range MappedRoles {
-		if role.NightVoteOrder != -1 {
-			roles = append(roles, name)
-		}
-	}
-	return roles
+	return lo.Filter(
+		lo.MapToSlice(
+			MappedRoles,
+			func(name string, role *Role) string {
+				return name
+			},
+		),
+		func(name string, _ int) bool {
+			return MappedRoles[name].NightVoteOrder != -1
+		},
+	)
 }
 
 func GetInteractionRoleNamesWhoHasOwnChat() []string {
@@ -48,10 +51,7 @@ func GetRoleByName(roleName string) (*Role, bool) {
 }
 
 func GetAllSortedRoles() []*Role {
-	var allRoles []*Role
-	for _, role := range MappedRoles {
-		allRoles = append(allRoles, role)
-	}
+	allRoles := lo.Values(MappedRoles)
 
 	sort.Slice(allRoles, func(i, j int) bool {
 		return allRoles[i].Team < allRoles[j].Team
@@ -66,7 +66,7 @@ func GetAllTeams() []Team {
 		mpTeams[role.Team] = true
 	}
 
-	teamsSlice := converter.GetMapKeys(mpTeams)
+	teamsSlice := lo.Keys(mpTeams)
 	sort.Slice(teamsSlice, func(i, j int) bool {
 		return teamsSlice[i] < teamsSlice[j]
 	})

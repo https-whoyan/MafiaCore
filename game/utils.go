@@ -3,6 +3,7 @@ package game
 import (
 	"github.com/https-whoyan/MafiaCore/player"
 	"github.com/https-whoyan/MafiaCore/roles"
+	"github.com/samber/lo"
 )
 
 // ClearDayVotes use to reset all player votes
@@ -34,10 +35,12 @@ func (g *Game) UnderstandWinnerTeam() *roles.Team {
 	allPlayers := g.active
 
 	// int represent count of players by their team
-	teamsMp := make(map[roles.Team]int)
-	for _, activePlayer := range *allPlayers {
-		teamsMp[activePlayer.Role.Team]++
-	}
+	teamsMp := lo.CountValues(lo.Map(
+		lo.Values(*allPlayers),
+		func(p *player.Player, _ int) roles.Team {
+			return p.Role.Team
+		}),
+	)
 
 	switch len(teamsMp) {
 	case 1:

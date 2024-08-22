@@ -1,10 +1,10 @@
 package config
 
 import (
+	"github.com/samber/lo"
 	"math/rand"
 	"sort"
 
-	"github.com/https-whoyan/MafiaCore/converter"
 	"github.com/https-whoyan/MafiaCore/roles"
 )
 
@@ -26,12 +26,14 @@ func (cfg *RolesConfig) GetShuffledRolesConfig() []*roles.Role {
 }
 
 func (cfg *RolesConfig) GetTeamsByCfg() []roles.Team {
-	mpTeams := make(map[roles.Team]bool)
-	for _, role := range cfg.RolesMp {
-		mpTeams[role.Role.Team] = true
-	}
+	mpTeams := lo.SliceToMap(
+		lo.Values(cfg.RolesMp),
+		func(config *RoleConfig) (roles.Team, bool) {
+			return config.Role.Team, true
+		},
+	)
 
-	teamsSlice := converter.GetMapKeys(mpTeams)
+	teamsSlice := lo.Keys(mpTeams)
 	sort.Slice(teamsSlice, func(i, j int) bool {
 		return teamsSlice[i] < teamsSlice[j]
 	})
@@ -72,7 +74,7 @@ func GetConfigByPlayersCountAndIndex(playersCount int, index int) *RolesConfig {
 }
 
 func (cfg *RolesConfig) GetOrderToVote() []*roles.Role {
-	rolesConfigs := converter.GetMapValues(cfg.RolesMp)
+	rolesConfigs := lo.Values(cfg.RolesMp)
 	var rolesArr []*roles.Role
 
 	for _, roleConfig := range rolesConfigs {
