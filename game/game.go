@@ -378,7 +378,7 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 		if deepCloneErr != nil {
 			return deepCloneErr
 		}
-		err = g.logger.InitNewGame(deepClone)
+		err = g.logger.InitNewGame(g.ctx, deepClone)
 		return err
 	}
 
@@ -482,7 +482,7 @@ func (g *Game) run() (isStoppedByCtx bool, finishLog *FinishLog) {
 			if g.logger != nil {
 				deepClone, deepCloneErr := g.GetDeepClone()
 				safeSendErrSignal(g.infoSender, deepCloneErr)
-				err := g.logger.SaveNightLog(deepClone, nightLog)
+				err := g.logger.SaveNightLog(g.ctx, deepClone, nightLog)
 				safeSendErrSignal(g.infoSender, err)
 			}
 
@@ -504,7 +504,7 @@ func (g *Game) run() (isStoppedByCtx bool, finishLog *FinishLog) {
 			if g.logger != nil {
 				deepClone, deepCloneErr := g.GetDeepClone()
 				safeSendErrSignal(g.infoSender, deepCloneErr)
-				err := g.logger.SaveDayLog(deepClone, dayLog)
+				err := g.logger.SaveDayLog(g.ctx, deepClone, dayLog)
 				safeSendErrSignal(g.infoSender, err)
 			}
 
@@ -558,7 +558,7 @@ func (g *Game) FinishByFinishLog(l FinishLog) {
 		if g.logger != nil {
 			deepClone, deepCloneErr := g.GetDeepClone()
 			safeSendErrSignal(g.infoSender, deepCloneErr)
-			loggerErr := g.logger.SaveFinishLog(deepClone, l)
+			loggerErr := g.logger.SaveFinishLog(g.ctx, deepClone, l)
 			safeSendErrSignal(g.infoSender, loggerErr)
 		}
 		g.replaceCtx()

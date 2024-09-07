@@ -1,6 +1,7 @@
 package game
 
 import (
+	"context"
 	"github.com/https-whoyan/MafiaCore/player"
 	"github.com/https-whoyan/MafiaCore/roles"
 )
@@ -11,10 +12,10 @@ import (
 // logs are automatically loaded and saved to the implementation for
 // saving in the run and finish methods.
 type Logger interface {
-	InitNewGame(g DeepCloneGame) error
-	SaveNightLog(g DeepCloneGame, log NightLog) error
-	SaveDayLog(g DeepCloneGame, log DayLog) error
-	SaveFinishLog(g DeepCloneGame, log FinishLog) error
+	InitNewGame(ctx context.Context, g DeepCloneGame) error
+	SaveNightLog(ctx context.Context, g DeepCloneGame, log NightLog) error
+	SaveDayLog(ctx context.Context, g DeepCloneGame, log DayLog) error
+	SaveFinishLog(ctx context.Context, g DeepCloneGame, log FinishLog) error
 }
 
 // ____________
