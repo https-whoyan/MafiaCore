@@ -1,16 +1,15 @@
 package game
 
-type State int8
+type State string
 
 const (
-	_ State = iota
-	NonDefinedState
-	RegisterState
-	InitState
-	StartingState
-	NightState
-	DayState
-	FinishState
+	NonDefinedState = "full raw"
+	RegisterState   = "registration"
+	InitState       = "prepared"
+	StartingState   = "starting"
+	NightState      = "night"
+	DayState        = "day"
+	FinishState     = "finished"
 )
 
 func (g *Game) IsFinished() bool {
@@ -65,19 +64,6 @@ func (g *Game) SwitchState() {
 // For format
 // _______________
 
-var stateDefinition = map[State]string{
-	NonDefinedState: "is full raw (nothing is known)",
-	RegisterState:   "is waited for registration",
-	StartingState:   "is prepared for starting",
-	NightState:      "is in night state",
-	DayState:        "is in day state",
-	FinishState:     "is finished",
-}
-
 func (s State) String() string {
-	str, ok := stateDefinition[s]
-	if !ok {
-		return "Unknown"
-	}
-	return str
+	return string(s)
 }

@@ -16,6 +16,28 @@ func getRandomDuration() time.Duration {
 	return time.Duration(randMilliSecondDuration) * time.Millisecond
 }
 
+func compareMaps[K comparable, E comparable](map1, map2 map[K]E) bool {
+	var keys = make(map[K]struct{})
+	for letter := range map1 {
+		keys[letter] = struct{}{}
+	}
+	for letter := range map2 {
+		keys[letter] = struct{}{}
+	}
+
+	for key := range keys {
+		val1, ok1 := map1[key]
+		val2, ok2 := map2[key]
+		if !ok1 || !ok2 {
+			return false
+		}
+		if val1 != val2 {
+			return false
+		}
+	}
+	return true
+}
+
 func (g *Game) timer(duration time.Duration) {
 	go func() {
 		ticker := time.NewTicker(duration)

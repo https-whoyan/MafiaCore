@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -55,8 +57,14 @@ func RenameModeOpt(mode RenameMode) GameOption {
 func VotePingOpt(votePing int) GameOption {
 	return func(g *Game) { g.votePing = votePing }
 }
-func LoggerOpt(logger Logger) GameOption {
-	return func(g *Game) { g.logger = logger }
+func GameLoggerOpt(logger Logger) GameOption {
+	return func(g *Game) { g.gameLogger = logger }
+}
+func InfoLoggerOpt(logger *log.Logger) GameOption {
+	return func(g *Game) { g.infoLogger = logger }
+}
+func ErrLoggerOpt(logger *log.Logger) GameOption {
+	return func(g *Game) { g.errorLogger = logger }
 }
 func VoteForYourselfOpt(voteForYourself bool) GameOption {
 	return func(g *Game) { g.voteForYourself = voteForYourself }
@@ -78,6 +86,8 @@ type Game struct {
 	playersCount int
 	rolesConfig  *configPack.RolesConfig
 	nightCounter int
+	infoLogger   *log.Logger
+	errorLogger  *log.Logger
 
 	timeStart time.Time
 	endTime   time.Time
@@ -121,8 +131,13 @@ type Game struct {
 	// Use to rename user in your interpretation
 	renameProvider playerPack.RenameUserProviderInterface
 	renameMode     RenameMode
-	infoSender     chan<- Signal
-	logger         Logger
+	errSender      chan<- ErrSignal
+	infoSender     chan<- InfoSignal
+	errChanDest    <-chan ErrSignal
+	infoChanDest   <-chan InfoSignal
+	finishFuncOnce *sync.Once
+	finishOnce     *sync.Once
+	gameLogger     Logger
 }
 
 func GetNewGame(guildID string, opts ...GameOption) *Game {
@@ -130,6 +145,9 @@ func GetNewGame(guildID string, opts ...GameOption) *Game {
 	active := make(playerPack.Players)
 	dead := make(playerPack.DeadPlayers)
 	spectators := playerPack.NonPlayingPlayers{}
+	errChan := make(chan ErrSignal)
+	infoChan := make(chan InfoSignal)
+	logger := log.New(os.Stderr, fmt.Sprintf("Game, ID: %v\t", guildID), log.Ldate|log.Ltime|log.Lshortfile)
 	newGame := &Game{
 		guildID: guildID,
 		state:   NonDefinedState,
@@ -145,11 +163,17 @@ func GetNewGame(guildID string, opts ...GameOption) *Game {
 		spectators:   &spectators,
 		nightLogs:    make([]NightLog, 0),
 		dayLogs:      make([]DayLog, 0),
+		infoLogger:   logger,
 		// Create a map
-		roleChannels: make(map[*rolesPack.Role]channelPack.RoleChannel),
-		votePing:     1,
-		infoSender:   make(chan<- Signal),
-		ctx:          context.Background(),
+		roleChannels:   make(map[*rolesPack.Role]channelPack.RoleChannel),
+		votePing:       1,
+		errSender:      errChan,
+		infoSender:     infoChan,
+		errChanDest:    errChan,
+		infoChanDest:   infoChan,
+		finishFuncOnce: &sync.Once{},
+		finishOnce:     &sync.Once{},
+		ctx:            context.Background(),
 	}
 	// Set options
 	for _, opt := range opts {
@@ -326,13 +350,13 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 	case NotRenameMode: // No actions
 	case RenameInGuildMode:
 		for _, player := range *g.active {
-			err = player.RenameAfterGettingID(g.renameProvider, "")
+			err = player.RenameAfterGettingID(g.renameProvider, "", g.infoLogger)
 			if err != nil {
 				return err
 			}
 		}
 		for _, spectator := range *g.spectators {
-			err = spectator.RenameToSpectator(g.renameProvider, "")
+			err = spectator.RenameToSpectator(g.renameProvider, "", g.infoLogger)
 			if err != nil {
 				return err
 			}
@@ -341,7 +365,7 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 		mainChannelServerID := g.mainChannel.GetServerID()
 
 		for _, player := range *g.active {
-			err = player.RenameAfterGettingID(g.renameProvider, mainChannelServerID)
+			err = player.RenameAfterGettingID(g.renameProvider, mainChannelServerID, g.infoLogger)
 			if err != nil {
 				return err
 			}
@@ -355,7 +379,7 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 
 			playerInteractionChannel := g.roleChannels[player.Role]
 			playerInteractionChannelIID := playerInteractionChannel.GetServerID()
-			err = player.RenameAfterGettingID(g.renameProvider, playerInteractionChannelIID)
+			err = player.RenameAfterGettingID(g.renameProvider, playerInteractionChannelIID, g.infoLogger)
 			if err != nil {
 				return err
 			}
@@ -365,7 +389,7 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 		mainChannelServerID := g.mainChannel.GetServerID()
 
 		for _, player := range *g.active {
-			err = player.RenameAfterGettingID(g.renameProvider, mainChannelServerID)
+			err = player.RenameAfterGettingID(g.renameProvider, mainChannelServerID, g.infoLogger)
 			if err != nil {
 				return err
 			}
@@ -373,12 +397,12 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 	default:
 		return errors.New("invalid rename mode")
 	}
-	if g.logger != nil {
+	if g.gameLogger != nil {
 		deepClone, deepCloneErr := g.GetDeepClone()
 		if deepCloneErr != nil {
 			return deepCloneErr
 		}
-		err = g.logger.InitNewGame(g.ctx, deepClone)
+		err = g.gameLogger.InitNewGame(g.ctx, deepClone)
 		return err
 	}
 
@@ -410,21 +434,18 @@ It is recommended to use context.Background()
 
 Return receive chan of Signal type, that informed you about Signal's
 */
-func (g *Game) Run(ctx context.Context) <-chan Signal {
-	ch := make(chan Signal)
-	g.infoSender = ch
-
+func (g *Game) Run(ctx context.Context) (<-chan ErrSignal, <-chan InfoSignal) {
 	go func() {
 		// Send InteractionMessage About New Game
 		err := g.messenger.Init.SendStartMessage(g.mainChannel)
 		// Used for participants to familiarize themselves with their roles, and so on.
 		time.Sleep(timePack.RoleInfoCount * time.Second)
-		safeSendErrSignal(g.infoSender, err)
+		safeSendErrSignal(g.errSender, err)
 		switch {
 		case ctx == nil:
-			sendFatalSignal(g.infoSender, NilContext)
+			sendFatalSignal(g.errSender, NilContext)
 		case g.IsRunning():
-			sendFatalSignal(g.infoSender, ErrGameAlreadyStarted)
+			sendFatalSignal(g.errSender, ErrGameAlreadyStarted)
 		default:
 			g.Lock()
 			g.ctx = ctx
@@ -437,7 +458,7 @@ func (g *Game) Run(ctx context.Context) <-chan Signal {
 			defer func() {
 				if r := recover(); r != nil {
 					isStoppedByCtx = true
-					g.infoSender <- newErrSignal(
+					g.errSender <- newErrSignal(
 						fmt.Errorf("panic recoved, err %v", err),
 					)
 					g.FinishAnyway()
@@ -455,7 +476,7 @@ func (g *Game) Run(ctx context.Context) <-chan Signal {
 		}
 	}()
 
-	return ch
+	return g.errChanDest, g.infoChanDest
 }
 
 func (g *Game) run() (isStoppedByCtx bool, finishLog *FinishLog) {
@@ -479,11 +500,11 @@ func (g *Game) run() (isStoppedByCtx bool, finishLog *FinishLog) {
 			nightLog := g.Night()
 			g.nightLogs = append(g.nightLogs, nightLog)
 			g.AffectNight(nightLog)
-			if g.logger != nil {
+			if g.gameLogger != nil {
 				deepClone, deepCloneErr := g.GetDeepClone()
-				safeSendErrSignal(g.infoSender, deepCloneErr)
-				err := g.logger.SaveNightLog(g.ctx, deepClone, nightLog)
-				safeSendErrSignal(g.infoSender, err)
+				safeSendErrSignal(g.errSender, deepCloneErr)
+				err := g.gameLogger.SaveNightLog(g.ctx, deepClone, nightLog)
+				safeSendErrSignal(g.errSender, err)
 			}
 
 			// Validate is final?
@@ -501,11 +522,11 @@ func (g *Game) run() (isStoppedByCtx bool, finishLog *FinishLog) {
 			dayLog := g.Day()
 			g.dayLogs = append(g.dayLogs, dayLog)
 			g.AffectDay(dayLog)
-			if g.logger != nil {
+			if g.gameLogger != nil {
 				deepClone, deepCloneErr := g.GetDeepClone()
-				safeSendErrSignal(g.infoSender, deepCloneErr)
-				err := g.logger.SaveDayLog(g.ctx, deepClone, dayLog)
-				safeSendErrSignal(g.infoSender, err)
+				safeSendErrSignal(g.errSender, deepCloneErr)
+				err := g.gameLogger.SaveDayLog(g.ctx, deepClone, dayLog)
+				safeSendErrSignal(g.errSender, err)
 			}
 
 			// Validate is final?
@@ -539,27 +560,20 @@ func (g *Game) run() (isStoppedByCtx bool, finishLog *FinishLog) {
 // Finishing functions
 // ___________________
 // ********************
-// ********************
-
-var (
-	finishingFuncOnce = sync.Once{}
-	finishOnce        = sync.Once{}
-)
 
 func (g *Game) FinishByFinishLog(l FinishLog) {
 	err := g.messenger.Finish.SendMessagesAboutEndOfGame(l, g.mainChannel)
 	if err != nil {
-		g.infoSender <- newErrSignal(err)
+		g.errSender <- newErrSignal(err)
 	}
-	finishingFuncOnce.Do(func() {
+	g.finishFuncOnce.Do(func() {
 		g.endTime = time.Now()
 		g.SetState(FinishState)
-		g.infoSender <- g.newSwitchStateSignal()
-		if g.logger != nil {
+		if g.gameLogger != nil {
 			deepClone, deepCloneErr := g.GetDeepClone()
-			safeSendErrSignal(g.infoSender, deepCloneErr)
-			loggerErr := g.logger.SaveFinishLog(g.ctx, deepClone, l)
-			safeSendErrSignal(g.infoSender, loggerErr)
+			safeSendErrSignal(g.errSender, deepCloneErr)
+			loggerErr := g.gameLogger.SaveFinishLog(g.ctx, deepClone, l)
+			safeSendErrSignal(g.errSender, loggerErr)
 		}
 		g.replaceCtx()
 		g.finish()
@@ -579,20 +593,19 @@ func (g *Game) replaceCtx() {
 
 // FinishAnyway is used to end the running game anyway.
 func (g *Game) FinishAnyway() {
-	finishingFuncOnce.Do(func() {
+	g.finishFuncOnce.Do(func() {
 		g.endTime = time.Now()
 		content := "The game was suspended."
 		_, err := g.mainChannel.Write([]byte(g.messenger.Finish.f.Bold(content)))
-		safeSendErrSignal(g.infoSender, err)
+		safeSendErrSignal(g.errSender, err)
 		g.SetState(FinishState)
-		g.infoSender <- g.newSwitchStateSignal()
 		g.replaceCtx()
 		g.finish()
 	})
 }
 
 func (g *Game) finish() {
-	finishOnce.Do(func() {
+	g.finishOnce.Do(func() {
 		// Delete from channels
 		for _, player := range *g.active {
 			if player.Role.NightVoteOrder == -1 {
@@ -600,23 +613,23 @@ func (g *Game) finish() {
 			}
 
 			playerChannel := g.roleChannels[player.Role]
-			safeSendErrSignal(g.infoSender, playerChannel.RemoveUser(player.Tag))
+			safeSendErrSignal(g.errSender, playerChannel.RemoveUser(player.Tag))
 		}
 
 		// Then remove spectators from game
 		for _, tag := range playerPack.GetTags(g.dead, g.spectators) {
 			for _, interactionChannel := range g.roleChannels {
-				safeSendErrSignal(g.infoSender, interactionChannel.RemoveUser(tag))
+				safeSendErrSignal(g.errSender, interactionChannel.RemoveUser(tag))
 			}
 		}
 
 		// Then, remove all players of main chat.
 		for _, player := range *g.startPlayers {
-			safeSendErrSignal(g.infoSender, g.mainChannel.RemoveUser(player.Tag))
+			safeSendErrSignal(g.errSender, g.mainChannel.RemoveUser(player.Tag))
 		}
 		// And spectators.
 		for _, spectator := range *g.spectators {
-			safeSendErrSignal(g.infoSender, g.mainChannel.RemoveUser(spectator.Tag))
+			safeSendErrSignal(g.errSender, g.mainChannel.RemoveUser(spectator.Tag))
 		}
 
 		// _______________
@@ -627,14 +640,14 @@ func (g *Game) finish() {
 		case NotRenameMode: // No actions
 		case RenameInGuildMode:
 			for _, player := range activePlayersAndSpectators {
-				safeSendErrSignal(g.infoSender, player.RenameUserAfterGame(g.renameProvider, ""))
+				safeSendErrSignal(g.errSender, player.RenameUserAfterGame(g.renameProvider, "", g.infoLogger))
 			}
 		case RenameOnlyInMainChannelMode:
 			mainChannelServerID := g.mainChannel.GetServerID()
 
 			for _, player := range activePlayersAndSpectators {
-				err := player.RenameUserAfterGame(g.renameProvider, mainChannelServerID)
-				safeSendErrSignal(g.infoSender, err)
+				err := player.RenameUserAfterGame(g.renameProvider, mainChannelServerID, g.infoLogger)
+				safeSendErrSignal(g.errSender, err)
 			}
 		case RenameInAllChannelsMode:
 			// Rename from Role Channels.
@@ -642,8 +655,8 @@ func (g *Game) finish() {
 				for _, interactionChannel := range g.roleChannels {
 					interactionChannelID := interactionChannel.GetServerID()
 
-					err := player.RenameUserAfterGame(g.renameProvider, interactionChannelID)
-					safeSendErrSignal(g.infoSender, err)
+					err := player.RenameUserAfterGame(g.renameProvider, interactionChannelID, g.infoLogger)
+					safeSendErrSignal(g.errSender, err)
 				}
 			}
 
@@ -651,14 +664,14 @@ func (g *Game) finish() {
 			mainChannelServerID := g.mainChannel.GetServerID()
 
 			for _, player := range activePlayersAndSpectators {
-				err := player.RenameUserAfterGame(g.renameProvider, mainChannelServerID)
-				safeSendErrSignal(g.infoSender, err)
+				err := player.RenameUserAfterGame(g.renameProvider, mainChannelServerID, g.infoLogger)
+				safeSendErrSignal(g.errSender, err)
 			}
 		default:
-			sendFatalSignal(g.infoSender, errors.New("invalid rename mode"))
+			sendFatalSignal(g.errSender, errors.New("invalid rename mode"))
 			return
 		}
 
-		sendCloseSignal(g.infoSender, "the game has been successfully completed.")
+		g.infoSender <- g.newFinishGameSignal()
 	})
 }

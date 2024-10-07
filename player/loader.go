@@ -2,8 +2,6 @@ package player
 
 import (
 	"errors"
-	"log"
-
 	"github.com/https-whoyan/MafiaCore/config"
 )
 
@@ -51,17 +49,17 @@ func GeneratePlayers(tags []string, oldUsernames []string,
 
 // First
 
-func GenerateNonPlayingPLayers(tags []string, usernames []string, serverUsernames []string) *NonPlayingPlayers {
+func GenerateNonPlayingPLayers(tags []string, usernames []string, serverUsernames []string) (*NonPlayingPlayers, error) {
 	if len(tags) != len(usernames) {
-		log.Println("Unexpected mismatch of playing participants and nicknames")
-		return nil
+		message := "unexpected mismatch of playing participants and nicknames"
+		return nil, errors.New(message)
 	}
 	var players = &NonPlayingPlayers{}
 	for i, tag := range tags {
 		newPlayer := NewNonPlayingPlayer(tag, usernames[i], serverUsernames[i])
 		players.Append(newPlayer)
 	}
-	return players
+	return players, nil
 }
 
 // Second
@@ -69,13 +67,11 @@ func GenerateNonPlayingPLayers(tags []string, usernames []string, serverUsername
 func GenerateEmptyPlayersByFunc(
 	x any,
 	getTagUsernameAndServerUsername func(x any, index int) (string, string, string),
-	countOfNewPlayers int) *NonPlayingPlayers {
-
+	countOfNewPlayers int,
+) (*NonPlayingPlayers, error) {
 	isRecovered := false
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println("Recovered from panic:", r)
-			log.Println("Invalid usage of GenerateEmptyPlayersByFunc function! Return empty slice")
 			isRecovered = true
 		}
 	}()
@@ -89,7 +85,8 @@ func GenerateEmptyPlayersByFunc(
 		players[i] = newPlayer
 	}
 	if isRecovered {
-		return nil
+		returnedErrorText := "panic recovered, invalid usage of GenerateEmptyPlayersByFunc function"
+		return nil, errors.New(returnedErrorText)
 	}
-	return &players
+	return &players, nil
 }

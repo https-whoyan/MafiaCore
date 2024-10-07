@@ -48,8 +48,8 @@ func (g *Game) GetEndTime() time.Time {
 func (g *Game) GetVotePing() int {
 	return g.votePing
 }
-func (g *Game) GameMessenger() *Messenger {
-	return g.messenger
+func (g *Game) GameMessenger() Messenger {
+	return *g.messenger
 }
 
 func (g *Game) GetRoleChannels() map[*rolesPack.Role]channelPack.RoleChannel {
@@ -58,3 +58,8 @@ func (g *Game) GetRoleChannels() map[*rolesPack.Role]channelPack.RoleChannel {
 func (g *Game) GetMainChannel() channelPack.MainChannel {
 	return g.mainChannel
 }
+
+func (g *Game) GetGameLogger() Logger { return g.gameLogger }
+
+func (g *Game) GetErrorChan() <-chan ErrSignal { return g.errChanDest }
+func (g *Game) GetInfoChan() <-chan InfoSignal { return g.infoChanDest }

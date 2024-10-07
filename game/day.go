@@ -1,7 +1,6 @@
 package game
 
 import (
-	"log"
 	"math"
 	"time"
 
@@ -24,7 +23,7 @@ func (g *Game) Day() DayLog {
 		deadline := CalculateDayDeadline(
 			g.nightCounter, g.dead.Len(), g.rolesConfig.PlayersCount)
 		g.RUnlock()
-		safeSendErrSignal(g.infoSender, g.messenger.Day.SendMessageAboutNewDay(g.mainChannel, deadline))
+		safeSendErrSignal(g.errSender, g.messenger.Day.SendMessageAboutNewDay(g.mainChannel, deadline))
 
 		return g.StartDayVoting(deadline)
 	}
@@ -36,7 +35,7 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 
 	g.timer(deadline)
 
-	var kickedPlayerID player.IDType = -1
+	var kickedPlayerID player.IDType = EmptyVoteInt
 	var breakDownDayPlayersCount = int(math.Ceil(float64(DayPercentageToNextStage*g.active.Len()) / 100.0))
 
 	acceptTheVote := func(voteP DayVoteProviderInterface) (kickedID *player.IDType, isEndVoting bool) {
@@ -47,7 +46,7 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 		)
 
 		if isEmpty {
-			vote = -1
+			vote = EmptyVoteInt
 		} else {
 			vote = toVoter.ID
 		}
@@ -76,11 +75,11 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 					mxOccurrence = occurrence
 					mxVote = pVote
 				} else if occurrence == mxOccurrence {
-					mxVote = -1
+					mxVote = EmptyVoteInt
 				}
 			}
 
-			if mxVote == -1 {
+			if mxVote == EmptyVoteInt {
 				return nil, true
 			}
 			kickedID = &mxVote
@@ -99,7 +98,7 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 		dayLog.Kicked = kickedID
 		dayLog.DayVotes = votesMp
 		dayLog.IsSkip = false
-		if kickedID == nil || *kickedID == -1 {
+		if kickedID == nil || *kickedID == EmptyVoteInt {
 			dayLog.Kicked = nil
 			dayLog.IsSkip = true
 		}
@@ -115,12 +114,13 @@ func (g *Game) StartDayVoting(deadline time.Duration) DayLog {
 			break
 		case voteP := <-g.dayVoteChan:
 			maybeKickedID, isEnd := acceptTheVote(voteP)
-			log.Println(maybeKickedID, isEnd)
+			g.infoLogger.Println(maybeKickedID, isEnd)
 			if isEnd {
 				if maybeKickedID != nil {
 					kickedPlayerID = *maybeKickedID
 				} else {
-					kickedPlayerID = -1
+					kickedPlayerID = EmptyVoteInt
+					kickedPlayerID = EmptyVoteInt
 				}
 				isNeedToContinue = false
 				g.timerStop <- struct{}{}
@@ -157,11 +157,11 @@ func CalculateDayDeadline(nighCounter int, deadCount int, totalPlayers int) time
 
 func (g *Game) AffectDay(l DayLog) (isFool bool) {
 	if l.IsSkip {
-		safeSendErrSignal(g.infoSender, g.messenger.Day.SendMessageThatDayIsSkipped(g.mainChannel))
+		safeSendErrSignal(g.errSender, g.messenger.Day.SendMessageThatDayIsSkipped(g.mainChannel))
 		return
 	}
 	kickedPlayer := (*g.active)[*l.Kicked]
-	safeSendErrSignal(g.infoSender, g.messenger.Day.SendMessageAboutKickedPlayer(g.mainChannel, kickedPlayer))
+	safeSendErrSignal(g.errSender, g.messenger.Day.SendMessageAboutKickedPlayer(g.mainChannel, kickedPlayer))
 
 	g.active.ToDead(kickedPlayer.ID, player.KilledByDayVoting, g.nightCounter, g.dead)
 	return

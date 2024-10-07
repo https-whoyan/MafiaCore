@@ -22,8 +22,12 @@ func TestNightCheckDeadlock_EmptyVotes(t *testing.T) {
 		if err != nil {
 			require.Fail(t, err.Error())
 		}
-		ch := g.Run(context.Background())
-		for range ch {
+		errCh, infoCh := g.Run(context.Background())
+		go func() {
+			for range errCh {
+			}
+		}()
+		for range infoCh {
 			if g.GetState() == game.DayState {
 				return
 			}
@@ -980,18 +984,11 @@ func TestReincarnation(t *testing.T) {
 		}
 		nightLog := g.NewNightLog()
 
-		ch := make(chan game.Signal)
 		wg := sync.WaitGroup{}
-		wg.Add(2)
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			g.AffectNight(nightLog)
-			close(ch)
-		}()
-		go func() {
-			defer wg.Done()
-			for range ch {
-			}
 		}()
 		wg.Wait()
 
@@ -1046,18 +1043,11 @@ func TestReincarnation(t *testing.T) {
 		}
 		nightLog := g.NewNightLog()
 
-		ch := make(chan game.Signal)
 		wg := sync.WaitGroup{}
 		wg.Add(2)
 		go func() {
 			defer wg.Done()
 			g.AffectNight(nightLog)
-			close(ch)
-		}()
-		go func() {
-			defer wg.Done()
-			for range ch {
-			}
 		}()
 		wg.Wait()
 

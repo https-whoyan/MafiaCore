@@ -16,6 +16,7 @@ type Logger interface {
 	SaveNightLog(ctx context.Context, g DeepCloneGame, log NightLog) error
 	SaveDayLog(ctx context.Context, g DeepCloneGame, log DayLog) error
 	SaveFinishLog(ctx context.Context, g DeepCloneGame, log FinishLog) error
+	NameAGame(ctx context.Context, g DeepCloneGame, gameName string) error
 }
 
 // ____________

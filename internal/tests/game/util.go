@@ -45,11 +45,9 @@ func initHelper(cfg *config.RolesConfig) (*game.Game, error) {
 	return g, nil
 }
 
-func signalHandler(s game.Signal) *roles.Role {
-	if sSS, ok := s.(game.SwitchStateSignal); ok {
-		if v, ok := sSS.Value.(game.SwitchNightVoteRoleSwitchValue); ok {
-			return v.CurrentVotedRole
-		}
+func signalHandler(s game.InfoSignal) *roles.Role {
+	if gameInfo, ok := s.Info.(game.SwitchVotingRoleInfo); ok {
+		return gameInfo.CurrVotingRole
 	}
 	return nil
 }
@@ -68,9 +66,12 @@ type voteCfg struct {
 }
 
 func takeANight(g *game.Game, c votesCfg) error {
-	ch := make(<-chan game.Signal)
+	var (
+		errChannel  <-chan game.ErrSignal
+		infoChannel <-chan game.InfoSignal
+	)
 	wg := sync.WaitGroup{}
-	wg.Add(2)
+	wg.Add(3)
 	var (
 		err      error
 		standErr = func(fnErr error) {
@@ -81,12 +82,12 @@ func takeANight(g *game.Game, c votesCfg) error {
 	)
 	go func() {
 		defer wg.Done()
-		ch = g.Run(context.Background())
+		errChannel, infoChannel = g.Run(context.Background())
 	}()
 	go func() {
 		defer wg.Done()
 		active := g.GetActivePlayers()
-		for s := range ch {
+		for s := range infoChannel {
 			if g.GetState() == game.DayState {
 				return
 			}
@@ -102,6 +103,11 @@ func takeANight(g *game.Game, c votesCfg) error {
 			}
 			vP := c[votedRole].toVotePr(&active)
 			standErr(g.SetNightVote(vP))
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		for range errChannel {
 		}
 	}()
 	wg.Wait()

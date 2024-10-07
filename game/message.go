@@ -47,6 +47,7 @@ type Messenger struct {
 	Day        *dayMessenger
 	AfterNight *afterNightMessenger
 	Finish     *finishMessenger
+	Public     *PublicMessanger
 }
 
 type primitiveMessenger struct {
@@ -341,4 +342,13 @@ func (m finishMessenger) getFoolWinnerMessage() string {
 	message += "Fool in this game was: " + foolMentions
 	message += "Nice try!"
 	return message
+}
+
+type PublicMessanger struct {
+	*primitiveMessenger
+}
+
+func (p *PublicMessanger) SendMessageToMainChat(message string) error {
+	_, err := p.g.mainChannel.Write([]byte(message))
+	return err
 }

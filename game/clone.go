@@ -1,6 +1,7 @@
 package game
 
 import (
+	"encoding/json"
 	"github.com/LastPossum/kamino"
 	channelPack "github.com/https-whoyan/MafiaCore/channel"
 	configPack "github.com/https-whoyan/MafiaCore/config"
@@ -61,4 +62,8 @@ func (g *Game) GetDeepClone() (DeepCloneGame, error) {
 		DayLogs:       deepCloneGame.dayLogs,
 		RenameMode:    deepCloneGame.renameMode,
 	}, nil
+}
+
+func (g DeepCloneGame) MarshalJSON() ([]byte, error) {
+	return json.Marshal(g)
 }

@@ -1,7 +1,6 @@
 package game
 
 import (
-	"log"
 	"sort"
 	"time"
 
@@ -23,7 +22,7 @@ func (g *Game) Night() NightLog {
 		g.infoSender <- g.newSwitchStateSignal()
 
 		err := g.messenger.Night.SendInitialNightMessage(g.mainChannel)
-		safeSendErrSignal(g.infoSender, err)
+		safeSendErrSignal(g.errSender, err)
 
 		// I'm getting the voting order
 		g.RLock()
@@ -81,7 +80,7 @@ func (g *Game) RoleNightAction(votedRole *rolesPack.Role) {
 		g.Lock()
 		g.nightVoting = votedRole
 		g.Unlock()
-		g.infoSender <- g.newSwitchVoteSignal()
+		g.infoSender <- g.newSwitchVotingRoleSignal()
 		// Finding all the players with that role.
 		// And finding nightInteraction channel
 		g.RLock()
@@ -158,16 +157,16 @@ func (g *Game) RoleNightAction(votedRole *rolesPack.Role) {
 		for _, voter := range *allPlayersWithRole {
 			if voter.InteractionStatus == playerPack.Muted {
 				err = g.messenger.Night.SendToPlayerThatIsMutedMessage(voter, interactionChannel)
-				safeSendErrSignal(g.infoSender, err)
+				safeSendErrSignal(g.errSender, err)
 
 				// Add to spectator
 				err = channelPack.FromUserToSpectator(interactionChannel, voter.Tag)
-				safeSendErrSignal(g.infoSender, err)
+				safeSendErrSignal(g.errSender, err)
 
 			} else {
 				containsNotMutedPlayers = true
 				err = g.messenger.Night.SendInvitingToVoteMessage(voter, voteDeadlineInt, interactionChannel)
-				safeSendErrSignal(g.infoSender, err)
+				safeSendErrSignal(g.errSender, err)
 			}
 		}
 
@@ -182,17 +181,17 @@ func (g *Game) RoleNightAction(votedRole *rolesPack.Role) {
 		}
 
 		if isTimerStop && containsNotMutedPlayers {
-			safeSendErrSignal(g.infoSender, g.messenger.Night.InfoThatTimerIsDone(interactionChannel))
+			safeSendErrSignal(g.errSender, g.messenger.Night.InfoThatTimerIsDone(interactionChannel))
 		}
 
 		// Putting it back in the channel.
 		for _, voter := range *allPlayersWithRole {
 			if voter.InteractionStatus == playerPack.Muted {
 				err = channelPack.FromSpectatorToUser(interactionChannel, voter.Tag)
-				safeSendErrSignal(g.infoSender, err)
+				safeSendErrSignal(g.errSender, err)
 
 				err = g.messenger.Night.SendThanksToMutedPlayerMessage(voter, interactionChannel)
-				safeSendErrSignal(g.infoSender, err)
+				safeSendErrSignal(g.errSender, err)
 			}
 		}
 
@@ -200,12 +199,12 @@ func (g *Game) RoleNightAction(votedRole *rolesPack.Role) {
 		sendToOtherEmptyVotes(nonEmptyVoter)
 
 		// Case when roles need to urgent calculation
-		log.Println(votedRole.Name, votedRole.UrgentCalculation)
+		g.infoLogger.Println(votedRole.Name, votedRole.UrgentCalculation)
 		if votedRole.UrgentCalculation {
 			message := g.nightInteraction(nonEmptyVoter)
 			if message != nil {
 				_, err = interactionChannel.Write([]byte(*message))
-				safeSendErrSignal(g.infoSender, err)
+				safeSendErrSignal(g.errSender, err)
 			}
 		}
 	}
@@ -269,7 +268,7 @@ func (g *Game) twoVoterRoleNightVoting(containsNotMutedPlayers bool, deadline ti
 
 	select {
 	case <-g.voteAccepted:
-		log.Println("two vote accepted")
+		g.infoLogger.Println("two vote accepted")
 		g.timerStop <- struct{}{}
 		break
 	case <-g.timerDone:
@@ -311,7 +310,7 @@ func (g *Game) AffectNight(l NightLog) {
 
 		// Sending a message about who died today.
 		err := g.messenger.AfterNight.SendAfterNightMessage(l, g.mainChannel)
-		safeSendErrSignal(g.infoSender, err)
+		safeSendErrSignal(g.errSender, err)
 		// Then, for each person try to do his reincarnation
 		g.Unlock()
 		for _, p := range *g.active {
@@ -342,7 +341,7 @@ func (g *Game) AppendToSpectators(newSpectators interface{ GetTags() []string },
 					return
 				default:
 					err := channelPack.FromUserToSpectator(interactionChannel, tag)
-					safeSendErrSignal(g.infoSender, err)
+					safeSendErrSignal(g.errSender, err)
 					break
 				}
 			}
@@ -351,7 +350,7 @@ func (g *Game) AppendToSpectators(newSpectators interface{ GetTags() []string },
 				return
 			default:
 				err := channelPack.FromUserToSpectator(mainChannel, tag)
-				safeSendErrSignal(g.infoSender, err)
+				safeSendErrSignal(g.errSender, err)
 				break
 			}
 		}
