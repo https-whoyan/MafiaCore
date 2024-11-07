@@ -59,7 +59,7 @@ func (g *Game) GetMainChannel() channelPack.MainChannel {
 	return g.mainChannel
 }
 
-func (g *Game) GetGameLogger() Logger { return g.gameLogger }
+func (g *Game) GetGameLogger() Storage { return g.storage }
 
 func (g *Game) GetErrorChan() <-chan ErrSignal { return g.errChanDest }
 func (g *Game) GetInfoChan() <-chan InfoSignal { return g.infoChanDest }

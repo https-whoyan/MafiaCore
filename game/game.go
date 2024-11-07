@@ -4,7 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"github.com/hashicorp/go-multierror"
+	"github.com/https-whoyan/MafiaCore/log"
 	"os"
 	"sync"
 	"time"
@@ -40,33 +41,33 @@ const (
 // Options
 // ____________________
 
-type GameOption func(g *Game)
+type Option func(g *Game)
 
-func FMTerOpt(fmtEr fmtPack.FmtInterface) GameOption {
+func FMTerOpt(fmtEr fmtPack.FmtInterface) Option {
 	return func(g *Game) {
 		messenger := NewGameMessanger(fmtEr, g)
 		g.messenger = messenger
 	}
 }
-func RenamePrOpt(rP playerPack.RenameUserProviderInterface) GameOption {
+func RenamePrOpt(rP playerPack.RenameUserProviderInterface) Option {
 	return func(g *Game) { g.renameProvider = rP }
 }
-func RenameModeOpt(mode RenameMode) GameOption {
+func RenameModeOpt(mode RenameMode) Option {
 	return func(g *Game) { g.renameMode = mode }
 }
-func VotePingOpt(votePing int) GameOption {
+func VotePingOpt(votePing int) Option {
 	return func(g *Game) { g.votePing = votePing }
 }
-func GameLoggerOpt(logger Logger) GameOption {
-	return func(g *Game) { g.gameLogger = logger }
+func StorageOpt(logger Storage) Option {
+	return func(g *Game) { g.storage = logger }
 }
-func InfoLoggerOpt(logger *log.Logger) GameOption {
+func InfoLoggerOpt(logger log.Logger) Option {
 	return func(g *Game) { g.infoLogger = logger }
 }
-func ErrLoggerOpt(logger *log.Logger) GameOption {
+func ErrLoggerOpt(logger log.Logger) Option {
 	return func(g *Game) { g.errorLogger = logger }
 }
-func VoteForYourselfOpt(voteForYourself bool) GameOption {
+func VoteForYourselfOpt(voteForYourself bool) Option {
 	return func(g *Game) { g.voteForYourself = voteForYourself }
 }
 
@@ -86,8 +87,8 @@ type Game struct {
 	playersCount int
 	rolesConfig  *configPack.RolesConfig
 	nightCounter int
-	infoLogger   *log.Logger
-	errorLogger  *log.Logger
+	infoLogger   log.Logger
+	errorLogger  log.Logger
 
 	timeStart time.Time
 	endTime   time.Time
@@ -137,10 +138,10 @@ type Game struct {
 	infoChanDest   <-chan InfoSignal
 	finishFuncOnce *sync.Once
 	finishOnce     *sync.Once
-	gameLogger     Logger
+	storage        Storage
 }
 
-func GetNewGame(guildID string, opts ...GameOption) *Game {
+func GetNewGame(ctx context.Context, guildID string, opts ...Option) *Game {
 	start := playerPack.NonPlayingPlayers{}
 	active := make(playerPack.Players)
 	dead := make(playerPack.DeadPlayers)
@@ -173,8 +174,10 @@ func GetNewGame(guildID string, opts ...GameOption) *Game {
 		infoChanDest:   infoChan,
 		finishFuncOnce: &sync.Once{},
 		finishOnce:     &sync.Once{},
-		ctx:            context.Background(),
+		ctx:            ctx,
 	}
+	messanger := NewGameMessanger(fmtPack.NilFMTInterfaceInstance, newGame)
+	newGame.messenger = messanger
 	// Set options
 	for _, opt := range opts {
 		opt(newGame)
@@ -223,22 +226,22 @@ func (g *Game) validationStart(cfg *configPack.RolesConfig) error {
 	}
 
 	if cfg.PlayersCount != len(*(g.startPlayers)) {
-		err = errors.Join(err, MismatchPlayersCountAndGamePlayersCountErr)
+		err = multierror.Append(err, MismatchPlayersCountAndGamePlayersCountErr)
 	}
 	if len(g.roleChannels) != len(rolesPack.GetAllNightInteractionRolesNames()) {
-		err = errors.Join(err, NotFullRoleChannelInfoErr)
+		err = multierror.Append(err, NotFullRoleChannelInfoErr)
 	}
 	if g.mainChannel == nil {
-		err = errors.Join(err, NotMainChannelInfoErr)
+		err = multierror.Append(err, NotMainChannelInfoErr)
 	}
 	if g.messenger == nil {
-		err = errors.Join(err, EmptyFMTerErr)
+		err = multierror.Append(err, EmptyFMTerErr)
 	}
 	if g.renameMode == NotRenameMode {
 		return err
 	}
 	if g.renameProvider == nil {
-		err = errors.Join(err, EmptyRenameProviderErr)
+		err = multierror.Append(err, EmptyRenameProviderErr)
 	}
 	switch g.renameMode {
 	case RenameInGuildMode:
@@ -248,7 +251,7 @@ func (g *Game) validationStart(cfg *configPack.RolesConfig) error {
 	case RenameInAllChannelsMode:
 		return err
 	default:
-		err = errors.Join(err, EmptyRenameModeErr)
+		err = multierror.Append(err, EmptyRenameModeErr)
 	}
 	return err
 }
@@ -397,12 +400,12 @@ func (g *Game) Init(cfg *configPack.RolesConfig) (err error) {
 	default:
 		return errors.New("invalid rename mode")
 	}
-	if g.gameLogger != nil {
+	if g.storage != nil {
 		deepClone, deepCloneErr := g.GetDeepClone()
 		if deepCloneErr != nil {
 			return deepCloneErr
 		}
-		err = g.gameLogger.InitNewGame(g.ctx, deepClone)
+		err = g.storage.InitNewGame(g.ctx, deepClone)
 		return err
 	}
 
@@ -451,7 +454,10 @@ func (g *Game) Run(ctx context.Context) (<-chan ErrSignal, <-chan InfoSignal) {
 			g.ctx = ctx
 			g.Unlock()
 
-			var isStoppedByCtx bool
+			var (
+				finishLog      *FinishLog
+				isStoppedByCtx bool
+			)
 
 			// Tracing
 
@@ -465,7 +471,7 @@ func (g *Game) Run(ctx context.Context) (<-chan ErrSignal, <-chan InfoSignal) {
 				}
 			}()
 
-			isStoppedByCtx, finishLog := g.run()
+			isStoppedByCtx, finishLog = g.run()
 
 			switch isStoppedByCtx {
 			case true:
@@ -500,10 +506,10 @@ func (g *Game) run() (isStoppedByCtx bool, finishLog *FinishLog) {
 			nightLog := g.Night()
 			g.nightLogs = append(g.nightLogs, nightLog)
 			g.AffectNight(nightLog)
-			if g.gameLogger != nil {
+			if g.storage != nil {
 				deepClone, deepCloneErr := g.GetDeepClone()
 				safeSendErrSignal(g.errSender, deepCloneErr)
-				err := g.gameLogger.SaveNightLog(g.ctx, deepClone, nightLog)
+				err := g.storage.SaveNightLog(g.ctx, deepClone, nightLog)
 				safeSendErrSignal(g.errSender, err)
 			}
 
@@ -522,10 +528,10 @@ func (g *Game) run() (isStoppedByCtx bool, finishLog *FinishLog) {
 			dayLog := g.Day()
 			g.dayLogs = append(g.dayLogs, dayLog)
 			g.AffectDay(dayLog)
-			if g.gameLogger != nil {
+			if g.storage != nil {
 				deepClone, deepCloneErr := g.GetDeepClone()
 				safeSendErrSignal(g.errSender, deepCloneErr)
-				err := g.gameLogger.SaveDayLog(g.ctx, deepClone, dayLog)
+				err := g.storage.SaveDayLog(g.ctx, deepClone, dayLog)
 				safeSendErrSignal(g.errSender, err)
 			}
 
@@ -569,10 +575,10 @@ func (g *Game) FinishByFinishLog(l FinishLog) {
 	g.finishFuncOnce.Do(func() {
 		g.endTime = time.Now()
 		g.SetState(FinishState)
-		if g.gameLogger != nil {
+		if g.storage != nil {
 			deepClone, deepCloneErr := g.GetDeepClone()
 			safeSendErrSignal(g.errSender, deepCloneErr)
-			loggerErr := g.gameLogger.SaveFinishLog(g.ctx, deepClone, l)
+			loggerErr := g.storage.SaveFinishLog(g.ctx, deepClone, l)
 			safeSendErrSignal(g.errSender, loggerErr)
 		}
 		g.replaceCtx()
@@ -595,9 +601,11 @@ func (g *Game) replaceCtx() {
 func (g *Game) FinishAnyway() {
 	g.finishFuncOnce.Do(func() {
 		g.endTime = time.Now()
-		content := "The game was suspended."
-		_, err := g.mainChannel.Write([]byte(g.messenger.Finish.f.Bold(content)))
-		safeSendErrSignal(g.errSender, err)
+		if g.mainChannel != nil {
+			content := "The game was suspended."
+			_, err := g.mainChannel.Write([]byte(g.messenger.Finish.f.Bold(content)))
+			safeSendErrSignal(g.errSender, err)
+		}
 		g.SetState(FinishState)
 		g.replaceCtx()
 		g.finish()

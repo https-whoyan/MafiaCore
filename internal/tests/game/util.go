@@ -16,7 +16,7 @@ import (
 func initHelper(cfg *config.RolesConfig) (*game.Game, error) {
 	var internalErr error
 
-	opts := []game.GameOption{
+	opts := []game.Option{
 		game.FMTerOpt(models.TestFMTInstance),
 		game.RenamePrOpt(models.TestRenameUserProviderInstance),
 	}

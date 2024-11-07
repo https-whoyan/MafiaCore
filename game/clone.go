@@ -64,6 +64,10 @@ func (g *Game) GetDeepClone() (DeepCloneGame, error) {
 	}, nil
 }
 
+func (g *DeepCloneGame) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, g)
+}
+
 func (g DeepCloneGame) MarshalJSON() ([]byte, error) {
 	return json.Marshal(g)
 }

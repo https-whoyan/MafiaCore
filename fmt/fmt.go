@@ -22,3 +22,16 @@ type FmtInterface interface {
 func BoldItalic(f FmtInterface, s string) string      { return f.Italic(f.Bold(s)) }
 func BoldUnderline(f FmtInterface, s string) string   { return f.Underline(f.Bold(s)) }
 func ItalicUnderline(f FmtInterface, s string) string { return f.Italic(f.Underline(s)) }
+
+type NilFMTInterface struct{}
+
+func (f NilFMTInterface) Bold(s string) string       { return s }
+func (f NilFMTInterface) Italic(s string) string     { return s }
+func (f NilFMTInterface) Underline(s string) string  { return s }
+func (f NilFMTInterface) Block(s string) string      { return s }
+func (f NilFMTInterface) LineSplitter() string       { return "\n" }
+func (f NilFMTInterface) InfoSplitter() string       { return "\n\n" }
+func (f NilFMTInterface) Tab() string                { return "\t" }
+func (f NilFMTInterface) Mention(nick string) string { return nick }
+
+var NilFMTInterfaceInstance = NilFMTInterface{}

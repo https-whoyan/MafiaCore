@@ -6,12 +6,12 @@ import (
 	"github.com/https-whoyan/MafiaCore/roles"
 )
 
-// Logger allows you to save game information.
+// Storage allows you to save game information.
 //
 // The implementation is thrown when the game is initialized Init,
 // logs are automatically loaded and saved to the implementation for
 // saving in the run and finish methods.
-type Logger interface {
+type Storage interface {
 	InitNewGame(ctx context.Context, g DeepCloneGame) error
 	SaveNightLog(ctx context.Context, g DeepCloneGame, log NightLog) error
 	SaveDayLog(ctx context.Context, g DeepCloneGame, log DayLog) error

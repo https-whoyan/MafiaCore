@@ -3,7 +3,7 @@ package player
 import (
 	"errors"
 	"fmt"
-	"log"
+	"github.com/https-whoyan/MafiaCore/log"
 )
 
 // ___________________________________
@@ -42,7 +42,7 @@ var (
 	getNewPlayerDeadNicknameWithoutNickname = func(ID int) string { return fmt.Sprintf(deadPrefixPatternWithoutNickname, ID) }
 	getNewPlayerDeadNickname                = func(ID int, oldNick string) string { return fmt.Sprintf(deadPrefixPattern, ID, oldNick) }
 
-	logIsEmptyProvider = func(serverUserID string, oldNick string, newNick string, channelIID string, logger *log.Logger) {
+	logIsEmptyProvider = func(serverUserID string, oldNick string, newNick string, channelIID string, logger log.Logger) {
 		logger.Printf("renameProvider is not provided. User with ServerID %v %v will "+
 			"not be renamed to %v in %v channel.",
 			serverUserID, oldNick, newNick, channelIID)
@@ -60,7 +60,7 @@ var (
 // UserRenamingFunctions
 // _______________________
 
-func (p *Player) RenameAfterGettingID(provider RenameUserProviderInterface, channelIID string, logger *log.Logger) error {
+func (p *Player) RenameAfterGettingID(provider RenameUserProviderInterface, channelIID string, logger log.Logger) error {
 	if p.ID <= 0 {
 		return InvalidID
 	}
@@ -81,7 +81,7 @@ func (p *Player) RenameAfterGettingID(provider RenameUserProviderInterface, chan
 	return provider.RenameUser(channelIID, p.Tag, newNick)
 }
 
-func (n NonPlayingPlayer) RenameToSpectator(provider RenameUserProviderInterface, channelIID string, logger *log.Logger) error {
+func (n NonPlayingPlayer) RenameToSpectator(provider RenameUserProviderInterface, channelIID string, logger log.Logger) error {
 	var newNick string
 	if len(n.OldNick) == 0 {
 		newNick = getNewSpectatorNicknameWithoutNick()
@@ -96,7 +96,7 @@ func (n NonPlayingPlayer) RenameToSpectator(provider RenameUserProviderInterface
 	return provider.RenameUser(channelIID, n.Tag, newNick)
 }
 
-func (p *DeadPlayer) RenameToDeadPlayer(provider RenameUserProviderInterface, channelIID string, logger *log.Logger) error {
+func (p *DeadPlayer) RenameToDeadPlayer(provider RenameUserProviderInterface, channelIID string, logger log.Logger) error {
 	if p.ID <= 0 {
 		return InvalidID
 	}
@@ -118,7 +118,7 @@ func (p *DeadPlayer) RenameToDeadPlayer(provider RenameUserProviderInterface, ch
 	return provider.RenameUser(channelIID, p.Tag, newNick)
 }
 
-func (n NonPlayingPlayer) RenameUserAfterGame(provider RenameUserProviderInterface, channelIID string, logger *log.Logger) error {
+func (n NonPlayingPlayer) RenameUserAfterGame(provider RenameUserProviderInterface, channelIID string, logger log.Logger) error {
 	newNick := n.OldNick
 	if provider == nil {
 		logIsEmptyProvider(n.Tag, n.OldNick, newNick, channelIID, logger)

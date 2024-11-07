@@ -47,7 +47,7 @@ go get -u github.com/https-whoyan/MafiaCore
 |     |       └── Logic on the interaction of roles on players or on the game.
 |     ├── loaders.go
 |     |       └── Methods of game struct to load channels and players
-|     ├── gameLogger.go
+|     ├── storage.go
 |     |       └── Interface to log all logs about games and logs definition
 |     ├── message.go
 |     |       ├── File used to send messages to channels (game channels) 
