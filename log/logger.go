@@ -33,7 +33,7 @@ type MockCtxLogger struct {
 	logger Logger
 }
 
-func NewMockCtxLogger(logger Logger) *MockCtxLogger {
+func NewMockCtxLogger(logger Logger) CtxLogger {
 	return &MockCtxLogger{
 		logger: logger,
 	}
